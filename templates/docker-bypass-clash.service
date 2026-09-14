@@ -1,0 +1,11 @@
+[Unit]
+Description=Bypass Clash TUN for Docker and Windows VM
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'ip rule show pref 8990 | grep -q 172.16.0.0/12 || ip rule add from 172.16.0.0/12 lookup main pref 8990; ip rule show pref 8991 | grep -q 172.16.0.0/12 || ip rule add to 172.16.0.0/12 lookup main pref 8991'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

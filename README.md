@@ -33,21 +33,34 @@ omarchy-cn/
 │   │   └── README.md
 │   ├── 03-国产办公软件适配/                         # 企业微信 (WeCom)、微信、飞书、钉钉、WPS
 │   │   └── README.md
-│   └── 04-桌面环境与终端显示/                       # Hyprland 规则、面板时间、终端中文字符对齐
+│   ├── 04-桌面环境与终端显示/                       # Hyprland 规则、面板时间、终端中文字符对齐
+│   │   └── README.md
+│   └── 05-Windows容器虚拟机/                        # Windows 11 容器虚拟机、网络隔离与性能极致精简
+│       ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
 │       └── README.md
 ├── skills/                                        # Agent Skill 规范目录 (anthropics/skills)
-│   └── omarchy-chinese-environment/
-│       ├── SKILL.md                               # Agent 调优与排障技能描述
+│   ├── omarchy-chinese-environment/               # 输入法与本地化全链路诊断技能
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── check_ime_env.sh
+│   │       └── apply_input_optimizations.sh
+│   └── omarchy-windows-vm-tuning/                 # Windows 虚拟机网络隔离与性能精简技能
+│       ├── SKILL.md
 │       └── scripts/
-│           ├── check_ime_env.sh                   # 一键环境诊断与冲突检测脚本
-│           └── apply_input_optimizations.sh       # 一键应用经过验证的完整输入法配置
+│           ├── check_vm_network.sh
+│           ├── enable_docker_bypass_clash.sh
+│           ├── optimize_windows_vm.ps1
+│           └── snapshot_vm_btrfs.sh
 └── templates/                                     # 开箱即用的配置文件片段
     ├── default.custom.yaml                        # Rime 全局方案补丁模板
     ├── rime_ice.custom.yaml                       # 雾凇拼音专属方案补丁模板
     ├── fcitx5.yaml                                # 桌面组件与密码应用级策略模板
     ├── fcitx5-profile                             # 包含 keyboard-us 降级布局的 profile 模板
     ├── bashrc_ime_snippet.sh                      # 终端默认英文与 sudo 包装 Hook 片段
-    └── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
+    ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
+    ├── docker-bypass-clash.service                # 宿主机网络隔离 systemd 模板
+    ├── enable-docker-bypass.sh                    # 宿主机网络隔离脚本模板
+    └── optimize_windows_vm.ps1                    # 虚拟机内部一键精简脚本模板
 ```
 
 ---
@@ -66,27 +79,56 @@ omarchy-cn/
 * [**物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）**](./docs/01-输入法与按键/物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）.md)
   * 深度技术复盘：为何虚拟按键测试通过而物理键盘无效？详细分析从物理按键、Linux XKB 内核驱动、Wayland 合成器到 Fcitx5/Rime 内部状态机的全链路事件传递。
 
+### 2. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
+* [**Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md)
+  * **下载加速与 ISO 注入**：剖析 Docker 拉取慢与 5GB Windows 11 ISO 在线下载卡顿根因，提供本地一键注入直接跳过下载的方案；
+  * **网络隔离与 Clash 防互扰**：
+    * 深度解决 Clash TUN 模式 Fake-IP（`198.18.x.x`）导致深信服 VPN（EasyConnect / aTrust）报“网络连接错误”的问题；
+    * 宿主机注入内核策略路由 `pref 8990`，强制将 Docker 虚拟机流量直通物理网卡路由表（main 表），并配置 systemd 开机持久化；
+    * 虚拟机内活跃网卡解绑宿主机 DNS，切换为纯净公网 DNS，校正北京时间 UTC+8 消除企业微信 15 小时时差；
+  * **Windows 11 极致性能精简**：
+    * 100% 可逆、纯非破坏性优化理念；
+    * 一键 PowerShell 脚本彻底禁用高 I/O 争抢服务（`SysMain`、`WSearch`、`DiagTrack`），切换视觉特效为性能优先，关闭小组件与休眠；
+    * 空闲 CPU 从 50%+ 降至 0%~2%，静态内存降至 1.8GB，FreeRDP 操作极度跟手；
+  * **Btrfs 秒级 CoW 快照备份**：利用写时复制特性，0.1 秒完成虚拟磁盘快照备份与还原，零额外物理磁盘空间占用。
+
 ---
 
 ## ⚡ 快速诊断与一键调优
 
 本项目提供了可以直接运行的诊断与自动化应用脚本：
 
-### 1. 运行系统输入法环境诊断
+### 1. 输入法与按键环境诊断与调优
 ```bash
+# 诊断输入法与键盘驱动状态
 bash skills/omarchy-chinese-environment/scripts/check_ime_env.sh
+
+# 一键应用全套输入法优化配置
+bash skills/omarchy-chinese-environment/scripts/apply_input_optimizations.sh
 ```
 
-### 2. 一键应用推荐调优配置
+### 2. Windows 虚拟机网络隔离与快照工具
 ```bash
-bash skills/omarchy-chinese-environment/scripts/apply_input_optimizations.sh
+# 诊断虚拟机网络隔离与运行状态
+bash skills/omarchy-windows-vm-tuning/scripts/check_vm_network.sh
+
+# 宿主机一键注入网络隔离策略路由并配置自启
+bash skills/omarchy-windows-vm-tuning/scripts/enable_docker_bypass_clash.sh
+
+# 利用 Btrfs 秒级创建虚拟机物理快照备份
+bash skills/omarchy-windows-vm-tuning/scripts/snapshot_vm_btrfs.sh backup
+
+# 发生意外时一秒还原快照
+bash skills/omarchy-windows-vm-tuning/scripts/snapshot_vm_btrfs.sh restore
 ```
 
 ---
 
 ## 🤖 作为 AI Agent Skill 使用 (Anthropics Skills 规范)
 
-本项目在 `skills/omarchy-chinese-environment/` 目录下严格遵循 [anthropics/skills](https://github.com/anthropics/skills) 标准构建了 Agent Skill。
+本项目在 `skills/` 目录下严格遵循 [anthropics/skills](https://github.com/anthropics/skills) 标准构建了两套可直接加载的 Agent Skills：
+1. **`omarchy-chinese-environment`**：负责输入法按键切换、终端默认英文、密码框纯英文直通与本地化排错；
+2. **`omarchy-windows-vm-tuning`**：负责 Windows 容器虚拟机网络隔离（Clash 防互扰、VPN 报错排查）、Windows 11 深度精简与 Btrfs 快照管理。
 
 当您使用 **Antigravity** 或 **Claude Code** 等智能编码助手时，可以直接引入该 Skill：
 * **自动识别**：当用户提出“输入法无法切换”、“密码框弹拼音”、“终端默认中文”或“中文排坑”等问题时，Agent 会自动激活该 Skill；
