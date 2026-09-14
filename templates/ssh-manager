@@ -1,0 +1,4 @@
+#!/bin/bash
+# Omarchy SSH Spotlight 快速启动脚本
+# 启动原生 Wayland foot 终端作为独立浮动弹窗并运行 sshs 会话管理器
+foot --app-id=sshs-floating --title="SSH Sessions" sshs
