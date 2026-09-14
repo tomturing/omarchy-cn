@@ -1,0 +1,23 @@
+# 存放路径: ~/.config/fcitx5/profile
+[Groups/0]
+# Group Name
+Name=Default
+# Layout
+Default Layout=us
+# Default Input Method
+DefaultIM=rime
+
+[Groups/0/Items/0]
+# Name
+Name=rime
+# Layout
+# Layout=
+
+[Groups/0/Items/1]
+# 必须加入 keyboard-us 作为密码输入框降级纯英文直通布局
+Name=keyboard-us
+# Layout
+# Layout=
+
+[GroupOrder]
+0=Default

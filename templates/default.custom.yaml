@@ -1,0 +1,26 @@
+# 存放路径: ~/.local/share/fcitx5/rime/default.custom.yaml
+patch:
+  schema_list:
+    - schema: rime_ice           # 雾凇拼音（首选）
+    - schema: luna_pinyin        # 明月拼音
+
+  # 原生修饰键状态机：单按松开才切换，长按组合键绝不误切
+  "ascii_composer/switch_key/Shift_L": commit_code
+  "ascii_composer/switch_key/Shift_R": commit_code
+
+  # 标点映射：全角/半角均输出半角英文字符 !
+  "punctuator/half_shape/!": "!"
+  "punctuator/full_shape/!": "!"
+
+  # 认证/密码类窗口强制英文模式
+  "app_options/quickshell/ascii_mode": true
+  "app_options/pinentry/ascii_mode": true
+  "app_options/pinentry-qt/ascii_mode": true
+  "app_options/pinentry-gnome3/ascii_mode": true
+  "app_options/pinentry-gtk-2/ascii_mode": true
+  "app_options/1Password/ascii_mode": true
+  "app_options/1password/ascii_mode": true
+  "app_options/org.keepassxc.KeePassXC/ascii_mode": true
+  "app_options/keepassxc/ascii_mode": true
+  "app_options/Bitwarden/ascii_mode": true
+  "app_options/bitwarden/ascii_mode": true

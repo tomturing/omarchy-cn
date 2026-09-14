@@ -1,0 +1,62 @@
+# 存放路径: ~/.local/share/fcitx5/rime/fcitx5.yaml
+config_version: "0.22"
+
+app_options:
+  foot:
+    ascii_mode: true
+  footclient:
+    ascii_mode: true
+  org.codeberg.dnkl.foot:
+    ascii_mode: true
+  org.omarchy.terminal:
+    ascii_mode: true
+  org.omarchy.agent:
+    ascii_mode: true
+  TUI.float:
+    ascii_mode: true
+  ssh-manager:
+    ascii_mode: true
+  WindTerm:
+    ascii_mode: true
+  windterm:
+    ascii_mode: true
+  alacritty:
+    ascii_mode: true
+  kitty:
+    ascii_mode: true
+  ghostty:
+    ascii_mode: true
+  com.mitchellh.ghostty:
+    ascii_mode: true
+  quickshell:
+    ascii_mode: true
+  pinentry:
+    ascii_mode: true
+  pinentry-qt:
+    ascii_mode: true
+  pinentry-gnome3:
+    ascii_mode: true
+  pinentry-gtk-2:
+    ascii_mode: true
+  hyprpolkitagent:
+    ascii_mode: true
+  polkit-gnome-authentication-agent-1:
+    ascii_mode: true
+  org.kde.polkit-kde-authentication-agent-1:
+    ascii_mode: true
+  lxqt-policykit-agent:
+    ascii_mode: true
+  1Password:
+    ascii_mode: true
+  1password:
+    ascii_mode: true
+  org.keepassxc.KeePassXC:
+    ascii_mode: true
+  keepassxc:
+    ascii_mode: true
+  Bitwarden:
+    ascii_mode: true
+  bitwarden:
+    ascii_mode: true
+  com.bitwarden.desktop:
+    ascii_mode: true
