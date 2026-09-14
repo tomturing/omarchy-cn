@@ -109,7 +109,7 @@ omarchy-cn/
   * **网络隔离与 Clash 防互扰**：
     * 深度解决 Clash TUN 模式 Fake-IP（`198.18.x.x`）导致深信服 VPN（EasyConnect / aTrust）报“网络连接错误”的问题；
     * 宿主机注入内核策略路由 `pref 8990`，强制将 Docker 虚拟机流量直通物理网卡路由表（main 表），并配置 systemd 开机持久化；
-    * 虚拟机内活跃网卡解绑宿主机 DNS，切换为纯净公网 DNS，校正北京时间 UTC+8 消除企业微信 15 小时时差；
+    * 宿主机容器编排层（`docker-compose.yml` / `daemon.json`）直接解耦纯净公网 DNS（`223.5.5.5` / `119.29.29.29`），从源头彻底根除 Fake-IP 冲突导致的外网超时假死（`ERR_TIMED_OUT`、微软语言包 `0x80240438`），实现虚拟机启动即用、无需在 Windows 敲命令；校正北京时间 UTC+8 消除企业微信 15 小时时差；
   * **Windows 11 极致性能精简**：
     * 100% 可逆、纯非破坏性优化理念；
     * 一键 PowerShell 脚本彻底禁用高 I/O 争抢服务（`SysMain`、`WSearch`、`DiagTrack`），切换视觉特效为性能优先，关闭小组件与休眠；

@@ -125,17 +125,60 @@ ip rule show pref 8990
        - "172.16.0.0/12"
    ```
 
-### 步骤 4：Windows VM 内部网络解绑与时区修复
+---
 
-登录 Windows 虚拟机，按 `Win + X` 打开 **终端 (PowerShell 管理员)**：
+### 步骤 4：宿主机 Docker 容器层 DNS 解耦（核心根治！开箱即用免进虚拟机）
 
-#### 1. 将活跃网卡 DNS 切换为公网纯净 DNS（关键）
+> [!CRITICAL]
+> **“网页打不开 ERR_TIMED_OUT 与语言包报错 0x80240438” 底层根因深度剖析**：
+> 1. **Fake-IP 致命冲突陷阱**：
+>    * 宿主机在 `/etc/docker/daemon.json` 中配置了 `"dns": ["172.17.0.1"]`（指向 Clash）。而 Omarchy 的 `/var/lib/omarchy/windows/docker-compose.yml` 默认未声明 `dns:`。
+>    * 容器内部自带的 DHCP/DNS 守护进程 `dnsmasq` 读取了容器的 resolv.conf，把 Windows VM 的所有域名解析全部转发给了 Clash（`172.17.0.1`）。
+>    * Clash 对所有域名（如 `www.baidu.com`、微软 Windows Update 服务器）返回了 **Fake-IP（`198.18.x.x`）**。
+>    * 与此同时，步骤 1 配置的高优先级内核策略路由（`pref 8990: from 172.16.0.0/12 lookup main`）把虚拟机的所有真实 IP 流量**强制引向物理网卡 `enp8s0` 直通路由器**（绕过了 Clash TUN）。
+>    * 物理路由器根本不认识 `198.18.x.x` 这类私有保留地址，直接丢包！
+>    * **结果**：DNS 拿到了虚假 Fake-IP，而 TCP 流量却绕过了 Clash 走向物理网卡，导致 Windows VM 访问所有域名 100% 超时假死！
+> 2. **优雅根治之道**：
+>    直接在宿主机容器编排层固化纯净公网 DNS，让容器内的 `dnsmasq` 启动时直接向上游阿里云/腾讯公共 DNS 请求真实 IP，并通过 DHCP 传递给 Windows VM。Windows 虚拟机启动即自动获得纯净公网 DNS，**完全不需要用户手动进入 Windows PowerShell 敲命令配置静态 DNS！**
+
+#### 操作：
+1. **编辑 `/var/lib/omarchy/windows/docker-compose.yml`**：
+   在 `windows` 服务下添加 `dns:` 与 `DNSMASQ_OPTS`：
+   ```yaml
+   services:
+     windows:
+       image: dockurr/windows
+       container_name: omarchy-windows
+       environment:
+         # ... 原有环境变量保持不变 ...
+         DNSMASQ_OPTS: "--server=223.5.5.5 --server=119.29.29.29 --server=8.8.8.8"
+       # 新增下行：覆盖宿主机 daemon.json 中的 Clash DNS
+       dns:
+         - 223.5.5.5
+         - 119.29.29.29
+         - 8.8.8.8
+       # ... 原有 devices, ports, volumes 保持不变 ...
+   ```
+
+2. **确保 `/usr/share/omarchy/bin/omarchy-windows-vm` 模板包含该配置**：
+   在 `write_compose_atomically` 中加入 `dns:` 与 `DNSMASQ_OPTS`，防止后续执行更新或重装时丢失配置。
+
+3. **清理 `/etc/docker/daemon.json`（可选）**：
+   将其中的 `"dns": ["172.17.0.1"]` 替换为公共 DNS `["223.5.5.5", "119.29.29.29"]`，防止其他 Docker 容器踩坑。
+
+---
+
+### 步骤 5：Windows VM 内部验证与本地缓存刷新
+
+完成上述宿主机配置后，Windows VM 默认即已恢复正常公网访问。若此前因尝试访问而残留了旧的 Fake-IP 缓存，可进行以下简易验证与刷新：
+
+#### 1. 刷新 DNS 缓存（可选）
+在 Windows 终端中运行：
 ```powershell
-# 仅对处于连接状态的网卡修改 DNS，避免触发未启用虚拟网卡报错
-Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Set-DnsClientServerAddress -ServerAddresses ("223.5.5.5", "119.29.29.29")
+ipconfig /flushdns
 ```
 
-*验证方式*：运行 `nslookup www.baidu.com`，解析结果必须为百度真实公网 IP（如 `180.101.50.x`），**绝不能是 `198.18.x.x`**。
+*验证方式*：运行 `nslookup www.baidu.com`，解析结果必须为百度真实公网 IP（如 `183.2.172.x` 或 `110.242.68.x`），**绝不能是 `198.18.x.x`**。
 
 #### 2. 关闭 Windows 系统全局代理
 在 Windows **设置 -> 网络和 Internet -> 代理**，确保 **“使用代理服务器”** 保持在 **【关闭】** 状态（深信服 VPN 严禁通过 HTTP 代理传输握手包）。
