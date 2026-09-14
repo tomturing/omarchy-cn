@@ -4,7 +4,7 @@
 
 本文全面复盘 Omarchy 环境下的两套主流 SSH 运维方案：
 1. **平铺玩家天花板组合**：Foot 原生 Wayland 极速终端 + `sshs` 纯文本会话管理器 + Spotlight 浮动弹窗 + 全局热键；
-2. **WindTerm 全功能图形方案**：多合一 IDE 级终端的深度适配、Hyprland 窗口规则以及**致命的 systemd OSC 3008 提示符乱码底层排查与修复**。
+2. **WindTerm 全功能图形方案**：多合一 IDE 级终端的深度适配、Hyprland 窗口规则、**致命的 systemd OSC 3008 提示符乱码底层排查与修复**，以及 **XWayland 下弹窗指针抓取（Pointer Grab）失效与会话图标配置文件一键修改**。
 
 ---
 
@@ -24,6 +24,7 @@
   - [3.3 优雅修复：~/.bashrc 细粒度环境检测与转义屏蔽](#33-优雅修复bashrc-细粒度环境检测与转义屏蔽)
   - [3.4 Hyprland 专属浮动窗口与工作区隔离规则](#34-hyprland-专属浮动窗口与工作区隔离规则)
   - [3.5 Fcitx5 输入法纯英文锁定配置](#35-fcitx5-输入法纯英文锁定配置)
+  - [3.6 交互避坑：XWayland 下拉选择框指针抓取（Pointer Grab）失效与会话图标配置文件直修](#36-交互避坑xwayland-下拉选择框指针抓取pointer-grab失效与会话图标配置文件直修)
 - [四、 方案决策矩阵与总结建议](#四-方案决策矩阵与总结建议)
 
 ---
@@ -36,7 +37,7 @@
 | **启动性能** | **毫秒级 (< 10ms)**，内存占用 < 15MB | **秒级 (1~3s)**，静态内存占用 150MB~300MB |
 | **窗口交互** | 全局快捷键呼出 **Spotlight 浮动弹窗**，回车直达新平铺窗口 | 软件自身包含多层内置切分面板，被 Hyprland 平铺后极度局促 |
 | **配置通用性** | **100% 标准 `~/.ssh/config`**，明文可 Git 管理，随处迁移 | 依赖内部自定义会话文件与私有配置，跨机器同步较繁琐 |
-| **Wayland 支持** | **原生纯 Wayland**，HiDPI 完美锐利，零闪烁 | 基于 XWayland 运行，可能伴随右键菜单焦点丢失或缩放瑕疵 |
+| **Wayland 支持** | **原生纯 Wayland**，HiDPI 完美锐利，零闪烁 | 基于 XWayland 运行，伴随临时下拉弹窗失焦、点击穿透问题 |
 | **文件传输** | 命令行管道、`rsync` 极速同步、`yazi` 或 `sshfs` 挂载本地编辑 | 侧边栏图形化 SFTP 树，支持鼠标拖拽上传下载 |
 | **适用人群** | **极客、Vim/Neovim 玩家、重度平铺键盘流、追求极简与速度** | **习惯 Windows/Mac 操作逻辑、需要直观鼠标拖拽传文件** |
 
@@ -218,6 +219,7 @@ fusermount -u ~/remote/ali-jump
 
 1. **窗口挤压问题**：WindTerm 本身是一个拥有复杂 Docking 系统的 IDE（左侧主机树、右侧终端、底部传输队列与命令宏）。如果直接作为普通平铺窗口打开，会被平铺规则强行切分成狭长视口，内部面板完全折叠无法辨识。
 2. **转义序列冲突**：在打开本地 Shell 或 SSH 登录现代 Linux 服务器时，屏幕出现大量类似 `133;A`、`3008;...` 的乱码字符，导致提示符闪烁混乱。
+3. **临时弹出菜单/选择框失焦与点击穿透**：编辑会话属性或图标时，下拉选择框（Popup Window）由于 XWayland 与 Wayland 合成器之间的指针抓取冲突，鼠标无法划入甚至穿透失焦。
 
 ---
 
@@ -321,6 +323,72 @@ app_options:
 
 ---
 
+### 3.6 交互避坑：XWayland 下拉选择框指针抓取（Pointer Grab）失效与会话图标配置文件直修
+
+#### 1. 故障现象
+在 WindTerm 中配置会话属性（例如想要修改本地 Shell `bash` 或远程 SSH 会话使用的图标）时：
+* 点击图标下拉按钮，弹出了选择图标的浮动小网格（Popup Window）；
+* **鼠标一旦从触发按钮向右或向下划动试图移入图标面板，浮动层就会瞬间失焦关闭，或者鼠标点击直接穿透到底层父窗口，根本无法用鼠标选中任何图标**。
+
+#### 2. 底层根因剖析
+这是 Wayland 合成器（Hyprland）与 XWayland 兼容层在处理 **Qt5 临时弹出表面（Popup Window）** 时的经典已知缺陷：
+* 在原生 X11 环境下，Qt 弹窗会发起 `XGrabPointer` 全局抓取；
+* 但在 Wayland 环境中，运行在 XWayland 容器内的 Qt5 应用弹出子窗口时，Wayland 合成器未能为其分配并维持连续的指针输入焦点（Pointer Grab）；
+* 鼠标光标一旦越过父子窗口的微小像素边界，Hyprland 即认为指针已脱离焦点区域，触发子窗口隐退或将点击事件穿透分发到底层表面。
+
+#### 3. 优雅避坑：直接编辑 WindTerm 纯文本配置文件
+
+WindTerm 的所有会话和全局首选项均采用结构极其清晰的 JSON 存储，完全不必在图形弹窗上浪费时间，可以直接在配置文件中精准修改图标。
+
+WindTerm 的核心配置路径位于：
+* **当前已保存的会话列表**：`~/.wind/profiles/default.v10/terminal/user.sessions`
+* **全局默认会话模板（包括新建会话时的默认属性）**：`~/.wind/profiles/default.v10/terminal/session.config`
+
+##### 关键生效步骤（防内存状态覆盖）：
+> [!IMPORTANT]
+> **避坑预警**：因为修改前 WindTerm 图形界面中可能正打开着会话编辑对话框（此时 WindTerm 内存中持有旧的未保存数据），必须遵循以下操作顺序，否则图形界面的旧内存数据会直接覆盖你写入的配置！
+
+1. **取消当前弹窗**：在 WindTerm 会话编辑窗口中点击右下角 **取消** 按钮；
+2. **完全退出 WindTerm**（保证配置文件不被内存写回覆盖）；
+3. **修改配置文件中的 `session.icon` 字段**：
+
+针对现有会话（`~/.wind/profiles/default.v10/terminal/user.sessions`）：
+```json
+[
+    {
+        "process.arguments" : "-i -l",
+        "process.workingDirectory" : "${HomeDir}",
+        "session.group" : "Shell sessions",
+        "session.icon" : "session::cmd",
+        "session.label" : "bash",
+        "session.protocol" : "Shell",
+        "session.system" : "linux",
+        "session.target" : "/bin/bash",
+        "session.uuid" : "bfdbc4d8-2bc7-4faf-b02d-47ccf1f54755"
+    }
+]
+```
+
+针对未来新建会话的全局默认模板（`~/.wind/profiles/default.v10/terminal/session.config`）：
+```json
+{
+    "session.icon" : "session::cmd"
+}
+```
+
+##### 常用内置图标标识表：
+| 图标代号 | 对应图标形态 | 适用场景 |
+| :--- | :--- | :--- |
+| `session::cmd` | 经典黑色方块终端控制台 | 本地 Bash / Zsh、通用 CLI 命令行 |
+| `session::linux` | Linux 官方小企鹅 (Tux) | 通用 Linux 服务器、Ubuntu / Debian 节点 |
+| `session::tmux` | Tmux 经典绿色会话图标 | 挂载了持久终端会话的主机 |
+| `session::powershell` | 经典蓝色 PowerShell 图标 | Windows 远端节点或 PowerShell 会话 |
+
+4. **重新打开 WindTerm**：
+   此时左侧会话列表以及打开标签页中的 `bash` 图标已立即变为经典的黑色终端控制台图标，后续新建的 SSH 与 Shell 会话也将默认继承该图标！
+
+---
+
 ## 四、 方案决策矩阵与总结建议
 
 ```mermaid
@@ -337,9 +405,10 @@ graph TD
     D --> D1[配置 ~/.bashrc 屏蔽 OSC 3008 乱码]
     D --> D2[Hyprland 配置 WindTerm 浮动或独立工作区]
     D --> D3[配置 Fcitx5 终端默认 ascii_mode]
+    D --> D4[直接编辑 user.sessions / session.config 配置 session.icon 绕过弹窗失焦]
 ```
 
 * **如果你是平铺窗口桌面（Omarchy / Hyprland）的忠实玩家**：
   强烈推荐**方案一（Foot + sshs + Spotlight 浮动）**。它与平铺桌面的直觉 100% 契合，轻量、优雅且无懈可击；
 * **如果你需要兼顾多台机器的复杂文件图形化拖拽分发**：
-  采用**方案二（WindTerm）**，但务必在 `~/.bashrc` 中写入 OSC 3008 转义拦截补丁，并赋予其专属的居中浮动或工作区规则。
+  采用**方案二（WindTerm）**，但务必在 `~/.bashrc` 中写入 OSC 3008 转义拦截补丁，赋予其专属的居中浮动规则，并通过文本配置直接管理图标与首选项，避免与 XWayland 临时弹窗较劲。

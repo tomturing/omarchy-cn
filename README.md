@@ -61,7 +61,8 @@ omarchy-cn/
 │       └── scripts/
 │           ├── check_ssh_env.sh
 │           ├── install_ssh_manager.sh
-│           └── fix_windterm_prompt.sh
+│           ├── fix_windterm_prompt.sh
+│           └── set_windterm_icon.sh
 └── templates/                                     # 开箱即用的配置文件片段
     ├── default.custom.yaml                        # Rime 全局方案补丁模板
     ├── rime_ice.custom.yaml                       # 雾凇拼音专属方案补丁模板
@@ -116,7 +117,8 @@ omarchy-cn/
   * **WindTerm 方案深度调优与避坑**：
     * 剖析现代 systemd Shell Integration 注入 OSC 3008 上下文转义序列导致 WindTerm 提示符出现 `3008;...` / `133;A` 严重乱码的底层根因；
     * 提供 `~/.bashrc` 细粒度环境检测补丁，在保障其他原生终端功能的同时彻底根治 WindTerm 乱码；
-    * 配置 Hyprland 浮动与工作区隔离规则，规避 XWayland 多窗格平铺挤压。
+    * 配置 Hyprland 浮动与工作区隔离规则，规避 XWayland 多窗格平铺挤压；
+    * 解决 XWayland 下 Qt5 下拉弹窗指针抓取（Pointer Grab）失效导致鼠标移入失焦/点击穿透，提供直接编辑 `user.sessions` 与 `session.config` 修改图标（`session.icon: session::cmd`）的优雅方案。
 
 ---
 
@@ -158,6 +160,9 @@ bash skills/omarchy-ssh-management/scripts/install_ssh_manager.sh
 
 # 一键修复 WindTerm 下 systemd OSC 3008 提示符乱码
 bash skills/omarchy-ssh-management/scripts/fix_windterm_prompt.sh
+
+# 一键设置 WindTerm 会话图标（绕过 XWayland 弹窗失焦）
+bash skills/omarchy-ssh-management/scripts/set_windterm_icon.sh "session::cmd"
 ```
 
 ---

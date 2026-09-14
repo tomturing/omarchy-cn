@@ -1,6 +1,6 @@
 ---
 name: omarchy-ssh-management
-description: Configure, diagnose, and optimize SSH session management and terminal remote tools on Omarchy (Arch Linux + Hyprland). Use when the user asks about SSH tools, session manager selection, tiling TUI workflows (sshs + Foot floating Spotlight), keybinding conflicts (hl.unbind Super+Shift+Enter), WindTerm setup, or troubleshooting WindTerm prompt corruption (systemd OSC 3008 escape sequences).
+description: Configure, diagnose, and optimize SSH session management and terminal remote tools on Omarchy (Arch Linux + Hyprland). Use when the user asks about SSH tools, session manager selection, tiling TUI workflows (sshs + Foot floating Spotlight), keybinding conflicts (hl.unbind Super+Shift+Enter), WindTerm setup, WindTerm prompt corruption (systemd OSC 3008 escape sequences), or WindTerm popup menu pointer grab issues (cannot click icon dropdowns in XWayland).
 ---
 
 # Omarchy SSH Management & Terminal Tuning Skill
@@ -17,6 +17,7 @@ Activate this skill whenever a user on Omarchy / Arch Linux:
 * **Encounters keybinding conflicts**: Pressing `Super + Shift + Enter` launches the browser simultaneously with the SSH manager (due to missing `hl.unbind`).
 * **Runs into WindTerm prompt corruption**: Shell prompt prints garbage characters like `133;A`, `3008;...` upon pressing Enter or executing commands in WindTerm.
 * **Suffers from WindTerm tiling squishing**: WindTerm's internal multi-dock panes getting squished into illegible strips by Hyprland tiling rules.
+* **WindTerm popup / dropdown pointer grab failure**: In XWayland, clicking session icon dropdowns or popups loses focus or passes clicks through to the background, making it impossible to select an icon with the mouse.
 
 ---
 
@@ -36,6 +37,7 @@ bash <skill_dir>/scripts/check_ssh_env.sh
 | **Hyprland Rules** | `sshs-floating` centered float | Window tiles into the grid instead of opening as a Spotlight popup. |
 | **Hyprland Bindings** | `hl.unbind` called before `o.bind` | Omarchy defaults `SUPER + SHIFT + RETURN` to browser, causing dual launch. |
 | **WindTerm OSC 3008** | Interception logic in `~/.bashrc` | systemd OSC 3008 escape sequences leak as raw ASCII text into WindTerm. |
+| **WindTerm Popup Grab** | Direct JSON config editing | Qt5 XWayland popup windows lack pointer grabs in Wayland; direct editing of `user.sessions` and `session.config` bypasses the GUI. |
 
 ---
 
@@ -113,15 +115,37 @@ o.window("WindTerm", {
 
 ---
 
+### Recipe 4: Fix WindTerm Session Icon & Bypass XWayland Popup Grab Failure
+
+In Hyprland/XWayland, Qt5 popups (such as the session icon dropdown) fail to maintain pointer grab, causing the mouse cursor to lose focus or pass clicks through when hovering over the icon grid.
+
+**Solution**:
+1. Click **Cancel** in the WindTerm edit dialog (to avoid in-memory state overwriting the files).
+2. Completely quit WindTerm.
+3. Edit `~/.wind/profiles/default.v10/terminal/session.config` (for new sessions template) and `~/.wind/profiles/default.v10/terminal/user.sessions` (for existing sessions):
+   Set `"session.icon": "session::cmd"` (black terminal console), `"session::linux"` (Tux penguin), or `"session::tmux"`.
+4. Relaunch WindTerm.
+
+Or use the automated script:
+```bash
+bash <skill_dir>/scripts/set_windterm_icon.sh "session::cmd"
+```
+
+---
+
 ## 4. Automation Scripts
 
 * **Install Ceiling Suite**:
   ```bash
   bash <skill_dir>/scripts/install_ssh_manager.sh
   ```
-* **Patch WindTerm Prompt**:
+* **Patch WindTerm Prompt (OSC 3008)**:
   ```bash
   bash <skill_dir>/scripts/fix_windterm_prompt.sh
+  ```
+* **Change WindTerm Session Icon (Bypass Popup Bug)**:
+  ```bash
+  bash <skill_dir>/scripts/set_windterm_icon.sh "session::cmd"
   ```
 
 ---
@@ -132,3 +156,4 @@ o.window("WindTerm", {
 2. **No Browser Collision**: Confirm browser does NOT launch when pressing `Super + Shift + Enter`.
 3. **Session Filter**: In `sshs`, type `/` to fuzzy-filter hosts defined in `~/.ssh/config`. Press Enter -> connects seamlessly.
 4. **WindTerm Prompt**: Open WindTerm, execute commands -> confirm no `3008;...` or `133;A` characters appear.
+5. **WindTerm Icon**: Verify `bash` and new SSH sessions display the classic console terminal icon without needing to click the broken popup window.
