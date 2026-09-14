@@ -351,10 +351,18 @@ rime_deployer --build ~/.local/share/fcitx5/rime /usr/share/rime-data ~/.local/s
 # 2. 同步配置到 build 目录
 cp ~/.local/share/fcitx5/rime/fcitx5.yaml ~/.local/share/fcitx5/rime/build/fcitx5.yaml
 
-# 3. 彻底重启 Fcitx5 服务（关键！切勿仅使用 fcitx5-remote -r）
-# 底层根因：fcitx5-remote -r 仅重载配置，不会重载 profile 输入法列表与内存中的 Rime 状态机！
-# 必须彻底重启进程，Fcitx5 才会重新读取 profile 与全新编译的 schema。
-systemctl --user restart omarchy-fcitx5.service 2>/dev/null || (pkill -x fcitx5 && sleep 0.5 && (pgrep -x fcitx5 >/dev/null || fcitx5 -d >/dev/null 2>&1))
+# 3. 彻底重启 Fcitx5 服务（关键！切勿仅使用 fcitx5-remote -r 或单纯 restart 服务）
+# 底层根因：
+# 1. fcitx5-remote -r 仅重载配置，不会重载 profile 输入法列表与内存中的 Rime 状态机与标点定义！
+# 2. Omarchy 自带的 omarchy-fcitx5.service 默认处于 disabled 状态，Fcitx5 实际是通过 D-Bus 激活常驻运行的。
+#    如果直接调用 systemctl --user restart omarchy-fcitx5.service，会因为抢占不到已存在的 DBus 节点陷入死循环重启，导致旧的 fcitx5 进程与旧词库内存常驻不退！
+# 必须先停用冲突服务，彻底强制终止旧进程，再启动守护进程：
+systemctl --user stop omarchy-fcitx5.service >/dev/null 2>&1 || true
+pkill -9 -x fcitx5 >/dev/null 2>&1 || true
+sleep 0.5
+fcitx5 -d >/dev/null 2>&1 || true
+sleep 0.5
+fcitx5-remote -s rime >/dev/null 2>&1 || true
 ```
 
 ---

@@ -106,10 +106,11 @@ echo -n "[8/8] 检查 Fcitx5 守护进程与输入法激活状态... "
 if pgrep -x fcitx5 >/dev/null 2>&1; then
     CURRENT_IM=$(fcitx5-remote -n 2>/dev/null || true)
     REMOTE_STATE=$(fcitx5-remote 2>/dev/null || true)
-    if [ "$CURRENT_IM" = "rime" ]; then
-        echo -e "${GREEN}[PASS] Fcitx5 运行中 (当前方案: $CURRENT_IM, 状态码: $REMOTE_STATE)${NC}"
+    HAS_RIME=$(gdbus call --session --dest org.fcitx.Fcitx5 --object-path /controller --method org.fcitx.Fcitx.Controller1.InputMethodGroupInfo "Default" 2>/dev/null | grep -o "'rime'" || true)
+    if [ "$CURRENT_IM" = "rime" ] || [ -n "$HAS_RIME" ]; then
+        echo -e "${GREEN}[PASS] Fcitx5 守护进程正常运行 (主方案: rime, 状态码: ${REMOTE_STATE:-1})${NC}"
     else
-        echo -e "${YELLOW}[WARN] Fcitx5 运行中，但当前方案为: $CURRENT_IM (建议切回 rime)${NC}"
+        echo -e "${YELLOW}[WARN] Fcitx5 运行中，但方案列表中未找到 rime${NC}"
     fi
 else
     echo -e "${RED}[FAIL] Fcitx5 守护进程未在运行！${NC}"

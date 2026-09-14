@@ -151,19 +151,12 @@ if command -v rime_deployer >/dev/null 2>&1; then
     echo -e "   [${GREEN}OK${NC}] Rime 二进制缓存编译完成"
 fi
 
-# 8. 彻底重启 Fcitx5 服务（核心：不能只用 fcitx5-remote -r，必须重启进程重载 profile）
-echo -e "-> [8/8] 彻底重启 Fcitx5 服务以完全载入 profile 与 Rime 引擎 ..."
-if systemctl --user is-active omarchy-fcitx5.service >/dev/null 2>&1; then
-    systemctl --user restart omarchy-fcitx5.service
-elif systemctl --user is-active dbus-:1.1-org.fcitx.Fcitx5@0.service >/dev/null 2>&1; then
-    systemctl --user restart dbus-:1.1-org.fcitx.Fcitx5@0.service
-else
-    pkill -x fcitx5 || true
-    sleep 0.5
-    if ! pgrep -x fcitx5 >/dev/null 2>&1; then
-        fcitx5 -d >/dev/null 2>&1 || true
-    fi
-fi
+# 8. 彻底重启 Fcitx5 服务（核心：停止冲突的 systemd 服务，彻底杀掉旧进程并启动 fcitx5 -d）
+echo -e "-> [8/8] 彻底重启 Fcitx5 守护进程以完全载入 profile 与最新 Schema ..."
+systemctl --user stop omarchy-fcitx5.service >/dev/null 2>&1 || true
+pkill -9 -x fcitx5 >/dev/null 2>&1 || true
+sleep 0.5
+fcitx5 -d >/dev/null 2>&1 || true
 sleep 0.5
 if command -v fcitx5-remote >/dev/null 2>&1; then
     fcitx5-remote -s rime >/dev/null 2>&1 || true
