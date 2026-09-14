@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "local.netspeed",
+  "name": "Network speed",
+  "version": "1.0.0",
+  "author": "user",
+  "description": "Real-time network speed monitor",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "NetSpeed.qml"
+  },
+  "barWidget": {
+    "displayName": "Network speed",
+    "description": "Real-time upload and download speed",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}

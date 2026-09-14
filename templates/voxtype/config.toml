@@ -1,0 +1,40 @@
+# Voxtype 语音输入中文与 GPU 加速配置模板
+# 路径：~/.config/voxtype/config.toml
+
+state_file = "auto"
+engine = "whisper"
+
+[hotkey]
+# 快捷键由 Hyprland 统一接管 (F9 长按 / Super+Ctrl+X 翻转)，此处禁用内置抓取避免冲突
+enabled = false
+
+[audio]
+device = "pulse"
+sample_rate = 16000
+max_duration_secs = 60
+pause_media = true
+
+[whisper]
+# 推荐使用 small 模型（约 487MB），兼顾中文识别准确度与显存轻量（可与本地 LLM 完美共存）
+model = "small"
+language = "zh"
+translate = false
+mode = "local"
+# 开启 Flash Attention 降低显存占用并翻倍推理吞吐
+flash_attention = true
+on_demand_loading = false
+gpu_isolation = false
+# 注入普通话日常与开发上下文引导词，大幅降低同音错别字与幻觉
+initial_prompt = "这是一段中文普通话日常对话与编程开发指令，请正确使用简体中文和标点符号。"
+
+[output]
+# 关键：Wayland + Hyprland 环境下必须使用 paste（剪贴板直通模式）！
+# 避免 type（按键模拟模式）被 Electron、Fcitx5 或浏览器窗口丢弃或拦截
+mode = "paste"
+fallback_to_clipboard = true
+type_delay_ms = 1
+
+[output.notification]
+on_recording_start = false
+on_recording_stop = false
+on_transcription = false
