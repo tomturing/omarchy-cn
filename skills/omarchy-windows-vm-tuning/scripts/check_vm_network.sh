@@ -38,15 +38,15 @@ else
     echo -e "${YELLOW}[INFO] 未在 ~/.windows/data.img 找到虚拟磁盘${NC}"
 fi
 
-# 4. 检查 Windows VM 启动器 RDP 客户端选型 (防止剪贴板 SIGSEGV 段错误)
-echo -n "[4/5] 检查 omarchy-windows-vm 客户端选型 (sdl-freerdp3)... "
+# 4. 检查 Windows VM 启动器 RDP 客户端选型与缩放兼容性
+echo -n "[4/5] 检查 omarchy-windows-vm 客户端选型 (xfreerdp3 vs sdl-freerdp3)... "
 VM_SCRIPT="/usr/share/omarchy/bin/omarchy-windows-vm"
 if [ -f "$VM_SCRIPT" ]; then
-    if grep -q "sdl-freerdp3 /u:" "$VM_SCRIPT"; then
-        echo -e "${GREEN}[PASS] 已迁移至新一代 sdl-freerdp3 (彻底免疫剪贴板闪退 Bug)${NC}"
-    elif grep -q "xfreerdp3 /u:" "$VM_SCRIPT"; then
-        echo -e "${RED}[FAIL] 仍在使用 xfreerdp3！在复制粘贴时极易触发 SIGSEGV 段错误闪退！${NC}"
-        echo -e "       ${YELLOW}-> 可运行: bash skills/omarchy-windows-vm-tuning/scripts/fix_vm_freerdp_crash.sh 一键修复${NC}"
+    if grep -q "xfreerdp3 /u:" "$VM_SCRIPT"; then
+        echo -e "${GREEN}[PASS] 当前使用 xfreerdp3 (享有 100% 完美的 Hyprland 分数缩放与无黑边全屏)${NC}"
+    elif grep -q "sdl-freerdp3 /u:" "$VM_SCRIPT"; then
+        echo -e "${YELLOW}[WARN] 当前使用实验性 sdl-freerdp3！在 Hyprland 1.25x 缩放下会出现黑边与分辨率异常！${NC}"
+        echo -e "       ${BLUE}-> 推荐运行: bash skills/omarchy-windows-vm-tuning/scripts/rebuild_freerdp_with_patch.sh${NC}"
     else
         echo -e "${YELLOW}[WARN] 未检测到标准 freerdp 启动行${NC}"
     fi
@@ -56,7 +56,9 @@ fi
 
 # 5. 检查 Windows VM 运行进程
 echo -n "[5/5] 检查 Windows VM 运行进程... "
-if pgrep -f "freerdp" >/dev/null 2>&1; then
+if pgrep -f "xfreerdp" >/dev/null 2>&1; then
+    echo -e "${GREEN}[PASS] xfreerdp3 会话正在运行中${NC}"
+elif pgrep -f "freerdp" >/dev/null 2>&1; then
     echo -e "${GREEN}[PASS] FreeRDP 会话正在运行中${NC}"
 elif pgrep -f "qemu-system-x86_64.*Windows" >/dev/null 2>&1; then
     echo -e "${GREEN}[PASS] QEMU 虚拟机后台运行中 (当前未连接 RDP 桌面)${NC}"

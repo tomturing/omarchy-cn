@@ -1,11 +1,11 @@
 ---
 name: omarchy-windows-vm-tuning
-description: Diagnose, isolate network, optimize performance, and resolve crash issues on Windows 11 VM (omarchy-windows-vm / dockurr/windows) under Omarchy (Arch Linux + Hyprland). Use when user reports issues with Windows VM network interference (Clash Fake-IP conflicts, VPN connection failure, Sangfor SSL VPN errors), slow Docker download of Windows images, Windows VM high CPU/RAM/disk usage, requests Btrfs CoW snapshots, or encounters VM window disappearing / FreeRDP clipboard SIGSEGV crashes.
+description: Diagnose, isolate network, optimize performance, and resolve crash/scaling issues on Windows 11 VM (omarchy-windows-vm / dockurr/windows) under Omarchy (Arch Linux + Hyprland). Use when user reports issues with Windows VM network interference (Clash Fake-IP conflicts, VPN connection failure, Sangfor SSL VPN errors), slow Docker download of Windows images, Windows VM high CPU/RAM/disk usage, requests Btrfs CoW snapshots, or encounters VM window disappearing / FreeRDP clipboard SIGSEGV crashes / sdl-freerdp3 black borders.
 ---
 
 # Omarchy Windows 容器虚拟机网络隔离、性能调优与故障排查 Skill
 
-This skill provides comprehensive diagnostics, policy routing network isolation recipes, non-destructive Windows 11 performance slimming tools, and client crash recovery for running containerized Windows VMs (`omarchy-windows-vm` based on `dockurr/windows`) on **Omarchy (Arch Linux + Hyprland)**.
+This skill provides comprehensive diagnostics, policy routing network isolation recipes, non-destructive Windows 11 performance slimming tools, and client crash/scaling recovery for running containerized Windows VMs (`omarchy-windows-vm` based on `dockurr/windows`) on **Omarchy (Arch Linux + Hyprland)**.
 
 ---
 
@@ -13,6 +13,7 @@ This skill provides comprehensive diagnostics, policy routing network isolation 
 
 Activate this skill whenever a user encounters any of the following symptoms:
 * **VM Window Disappears / False Crash**: The `Windows VM - Omarchy` window suddenly vanishes during copy-paste or web browsing, while the backend QEMU process is still healthy (FreeRDP 3.31.1 `xf_cliprdr.c` SIGSEGV crash).
+* **Black Borders with sdl-freerdp3 (Letterboxing)**: Attempted switching to `sdl-freerdp3` but suffered from black bars on the right/bottom and blurry resolution under Hyprland fractional scaling (1.25x).
 * **VPN Connection Failure in VM**: Sangfor EasyConnect / aTrust or corporate SSL VPN reports "网络连接错误，请检查网络" (Network connection error).
 * **Fake-IP / Proxy Pollution**: Domain name resolution inside the VM returns Fake-IP (`198.18.x.x`) due to host Clash TUN mode interception.
 * **WeCom Timestamp Mismatch**: Enterprise WeChat messages show "昨天" (Yesterday) due to UTC-8 Pacific time zone deviation.
@@ -36,7 +37,7 @@ bash <skill_dir>/scripts/check_vm_network.sh
 | **Linux Policy Route `pref 8990`** | `from 172.16.0.0/12 lookup main` | Docker VM traffic is being intercepted by Clash TUN (`pref 9000`). |
 | **systemd Persistence Service** | `docker-bypass-clash.service` active | Policy routes will be wiped upon host reboot. |
 | **VM DNS Resolution** | Resolves to real public IP (e.g. `223.5.5.5`) | VM inherits host Docker bridge DNS (`172.17.0.1`), returning Clash Fake-IPs (`198.18.x.x`). |
-| **RDP Client Selection** | `sdl-freerdp3` | Legacy `xfreerdp3` triggers SIGSEGV on clipboard format synchronization (`xf_cliprdr.c:396`). |
+| **RDP Client & Patch** | `xfreerdp3` with upstream patch | Unpatched `xfreerdp3` segfaults on clipboard formats; unpatched `sdl-freerdp3` causes black borders under 1.25x scaling. |
 | **VM Background Services** | `SysMain`, `WSearch`, `DiagTrack` disabled | Windows indexing and superfetch constantly thrash virtual disk I/O. |
 
 ---
@@ -71,21 +72,27 @@ Set-TimeZone -Id "China Standard Time"
 
 ---
 
-## 4. Fix FreeRDP Clipboard Crash (Migrate to `sdl-freerdp3`)
+## 4. Fix FreeRDP Clipboard Crash (Ultimate Solution: Recompile xfreerdp3 with Upstream Patch)
 
-When the remote desktop window crashes unexpectedly during copy/paste, `xfreerdp3` hit an upstream NULL pointer dereference in `xf_cliprdr_is_atom_available`.
+### Why NOT switch to `sdl-freerdp3`?
+In Hyprland with fractional scaling (`1.25x`), `sdl-freerdp3` (still marked as experimental upstream) causes massive black borders (Letterboxing) on the right and bottom, along with blurred display resolution.
 
-### Automated One-Click Fix:
-```bash
-bash <skill_dir>/scripts/fix_vm_freerdp_crash.sh
+### The Ultimate Fix:
+Keep `xfreerdp3` for flawless native scaling and fullscreen, while applying the upstream 1-line patch to fix the NULL pointer loop boundary in `client/X11/xf_cliprdr.c`:
+
+```diff
+--- a/client/X11/xf_cliprdr.c
++++ b/client/X11/xf_cliprdr.c
+@@ -391,3 +391,3 @@ static BOOL xf_cliprdr_is_atom_available(xfClipboard* clipboard, Atom atom)
+-	for (size_t x = 0; x < clipboard->numClientFormats; x++)
++	for (size_t x = 0; x < clipboard->clientAvailableFormatAtomsCount; x++)
 ```
 
-### Manual Command:
+### Automated One-Click Recompile & Install:
 ```bash
-sudo sed -i.bak 's/xfreerdp3 \/u:"\$WIN_USER"/sdl-freerdp3 \/u:"\$WIN_USER"/' /usr/share/omarchy/bin/omarchy-windows-vm
+bash <skill_dir>/scripts/rebuild_freerdp_with_patch.sh
 ```
-* **Why it works**: `sdl-freerdp3` uses the modern SDL clipboard architecture, completely bypassing the flawed X11 `xf_cliprdr.c` code path while maintaining 100% parameter compatibility.
-* **Upstream Status**: Tracked in Omarchy Issue [#11789](https://github.com/omacom/omarchy/issues/11789).
+* **Upstream Tracking**: Tracked in Omarchy Issue [#11789](https://github.com/omacom/omarchy/issues/11789) with practical scaling verification feedback.
 
 ---
 

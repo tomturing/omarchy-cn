@@ -39,7 +39,7 @@ omarchy-cn/
 │   │   └── README.md
 │   ├── 05-Windows容器虚拟机/                        # Windows 11 容器虚拟机、网络隔离与性能极致精简
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
-│   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（从xfreerdp3迁移至sdl-freerdp3深度实录）.md
+│   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md
 │   │   └── README.md
 │   └── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑
 │       ├── Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md
@@ -56,6 +56,7 @@ omarchy-cn/
 │   │       ├── check_vm_network.sh
 │   │       ├── enable_docker_bypass_clash.sh
 │   │       ├── fix_vm_freerdp_crash.sh
+│   │       ├── rebuild_freerdp_with_patch.sh
 │   │       ├── optimize_windows_vm.ps1
 │   │       └── snapshot_vm_btrfs.sh
 │   └── omarchy-ssh-management/                    # SSH 运维管理与终端避坑技能
@@ -75,6 +76,7 @@ omarchy-cn/
     ├── docker-bypass-clash.service                # 宿主机网络隔离 systemd 模板
     ├── enable-docker-bypass.sh                    # 宿主机网络隔离脚本模板
     ├── optimize_windows_vm.ps1                    # 虚拟机内部一键精简脚本模板
+    ├── fix-cliprdr-segfault.patch                 # FreeRDP 剪贴板段错误官方单行补丁
     ├── ssh-manager                                # SSH Spotlight 快速启动脚本
     ├── hypr_ssh_windowrules.lua                   # SSH 浮动与 WindTerm 窗口规则模板
     ├── hypr_ssh_bindings.lua                      # Super+Shift+Enter 解绑与绑定模板
@@ -109,11 +111,12 @@ omarchy-cn/
     * 一键 PowerShell 脚本彻底禁用高 I/O 争抢服务（`SysMain`、`WSearch`、`DiagTrack`），切换视觉特效为性能优先，关闭小组件与休眠；
     * 空闲 CPU 从 50%+ 降至 0%~2%，静态内存降至 1.8GB，FreeRDP 操作极度跟手；
   * **Btrfs 秒级 CoW 快照备份**：利用写时复制特性，0.1 秒完成虚拟磁盘快照备份与还原，零额外物理磁盘空间占用。
-* [**Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（从xfreerdp3迁移至sdl-freerdp3深度实录）**](./docs/05-Windows容器虚拟机/Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（从xfreerdp3迁移至sdl-freerdp3深度实录）.md)
+* [**Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）**](./docs/05-Windows容器虚拟机/Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md)
   * **假死排查**：窗口瞬间消失并非虚拟机崩溃，后台 QEMU 进程依然存活运行；
   * **缺陷溯源**：`coredumpctl` 与 GDB 符号化定位 `freerdp 3.31.1` 的 `xf_cliprdr.c:396` 在格式遍历时非法越界，导致 SIGSEGV 段错误闪退；
-  * **官方迁移**：一键将启动器替换为官方新一代 `sdl-freerdp3`，彻底免疫剪贴板闪退，保持 100% 参数无缝兼容；
-  * **开源协同**：向 Omarchy 官方提交 Issue [#11789](https://github.com/omacom/omarchy/issues/11789)，推动上游版本迭代。
+  * **避坑大陷阱**：实测揭示盲目切换至 `sdl-freerdp3` 会在 Hyprland 1.25x 等分数缩放下产生严重的黑边（Letterboxing）与分辨率失真，阐明官方坚守 `xfreerdp3` 的底层缘由；
+  * **终极完美方案**：保留 `xfreerdp3` 100% 满屏无黑边渲染，注入官方单行补丁重编 `freerdp`，兼得极致显示与坚如磐石的剪贴板稳定性；
+  * **开源协同**：向 Omarchy 官方提交 Issue [#11789](https://github.com/omacom/omarchy/issues/11789) 及追加实测反馈。
 
 ### 3. 远程连接与运维工具 (`docs/06-远程连接与运维工具`)
 * [**Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）**](./docs/06-远程连接与运维工具/Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md)
@@ -156,8 +159,8 @@ bash skills/omarchy-windows-vm-tuning/scripts/snapshot_vm_btrfs.sh backup
 # 发生意外时一秒还原快照
 bash skills/omarchy-windows-vm-tuning/scripts/snapshot_vm_btrfs.sh restore
 
-# 一键修复剪贴板触发虚拟机窗口崩溃闪退（迁移至 sdl-freerdp3）
-bash skills/omarchy-windows-vm-tuning/scripts/fix_vm_freerdp_crash.sh
+# 一键为 FreeRDP 打入官方剪贴板单行补丁重编安装（彻底消除黑边与段错误闪退）
+bash skills/omarchy-windows-vm-tuning/scripts/rebuild_freerdp_with_patch.sh
 ```
 
 ### 3. SSH 运维环境与终端乱码诊断

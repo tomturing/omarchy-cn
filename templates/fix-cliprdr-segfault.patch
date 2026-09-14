@@ -1,0 +1,5 @@
+--- a/client/X11/xf_cliprdr.c
++++ b/client/X11/xf_cliprdr.c
+@@ -391,3 +391,3 @@ static BOOL xf_cliprdr_is_atom_available(xfClipboard* clipboard, Atom atom)
+-	for (size_t x = 0; x < clipboard->numClientFormats; x++)
++	for (size_t x = 0; x < clipboard->clientAvailableFormatAtomsCount; x++)
