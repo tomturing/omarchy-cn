@@ -1,0 +1,71 @@
+# Rime basic symbols (Windows Microsoft Pinyin aligned)
+# encoding: utf-8
+
+full_shape:
+  ' ' : { commit: '　' }
+  ',' : { commit: ， }
+  '.' : { commit: 。 }
+  '<' : { commit: 《 }
+  '>' : { commit: 》 }
+  '/' : { commit: '/' }
+  '?' : { commit: ？ }
+  ';' : { commit: ； }
+  ':' : { commit: ： }
+  '''' : { pair: [ '‘', '’' ] }
+  '"' : { pair: [ '“', '”' ] }
+  '\' : { commit: 、 }
+  '|' : { commit: '|' }
+  '`' : ｀
+  '~' : { commit: ～ }
+  '!' : { commit: '!' }
+  '@' : { commit: '@' }
+  '#' : { commit: '#' }
+  '%' : { commit: '%' }
+  '$' : { commit: ￥ }
+  '^' : { commit: …… }
+  '&' : ＆
+  '*' : { commit: '*' }
+  '(' : （
+  ')' : ）
+  '-' : －
+  '_' : ——
+  '+' : ＋
+  '=' : ＝
+  '[' : { commit: 【 }
+  ']' : { commit: 】 }
+  '{' : { commit: '{' }
+  '}' : { commit: '}' }
+
+half_shape:
+  ',' : { commit: ， }
+  '.' : { commit: 。 }
+  '<' : { commit: 《 }
+  '>' : { commit: 》 }
+  '/' : { commit: '/' }
+  '?' : { commit: ？ }
+  ';' : { commit: ； }
+  ':' : { commit: ： }
+  '''' : { pair: [ '‘', '’' ] }
+  '"' : { pair: [ '“', '”' ] }
+  '\' : { commit: 、 }
+  '|' : { commit: '|' }
+  '`' : '`'
+  '~' : { commit: ～ }
+  '!' : { commit: '!' }
+  '@' : '@'
+  '#' : '#'
+  '%' : '%'
+  '$' : { commit: ￥ }
+  '^' : { commit: …… }
+  '&' : '&'
+  '*' : '*'
+  '(' : （
+  ')' : ）
+  '-' : '-'
+  '_' : ——
+  '+' : '+'
+  '=' : '='
+  '[' : { commit: 【 }
+  ']' : { commit: 】 }
+  '{' : { commit: '{' }
+  '}' : { commit: '}' }

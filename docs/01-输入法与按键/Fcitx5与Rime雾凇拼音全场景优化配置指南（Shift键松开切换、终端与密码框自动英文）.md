@@ -96,20 +96,10 @@ hyprctl reload config-only
      # 标点映射：全角/半角均输出英文字符 !
      "punctuator/half_shape/!": "!"
      "punctuator/full_shape/!": "!"
-
-     # 认证/密码类窗口强制英文模式
-     "app_options/quickshell/ascii_mode": true
-     "app_options/pinentry/ascii_mode": true
-     "app_options/pinentry-qt/ascii_mode": true
-     "app_options/pinentry-gnome3/ascii_mode": true
-     "app_options/pinentry-gtk-2/ascii_mode": true
-     "app_options/1Password/ascii_mode": true
-     "app_options/1password/ascii_mode": true
-     "app_options/org.keepassxc.KeePassXC/ascii_mode": true
-     "app_options/keepassxc/ascii_mode": true
-     "app_options/Bitwarden/ascii_mode": true
-     "app_options/bitwarden/ascii_mode": true
    ```
+   > [!WARNING]
+   > **切勿在 `default.custom.yaml` 或 `rime_ice.custom.yaml` 中配置 `app_options`！**  
+   > 写入 Schema patch 的 `app_options` 会被 Rime 引擎在底层将对应应用硬性锁定在 ASCII 模式，导致用户在该应用内按 Shift 无法切换中文。针对特定窗口的初始纯英文策略，必须且只能配置在 `fcitx5.yaml` 中由 Fcitx5 前端调度（详见步骤 6）。
 
 2. **独立方案补丁**（编辑 `~/.local/share/fcitx5/rime/rime_ice.custom.yaml`）：
    ```yaml
@@ -118,17 +108,6 @@ hyprctl reload config-only
      "ascii_composer/switch_key/Shift_R": commit_code
      "punctuator/half_shape/!": "!"
      "punctuator/full_shape/!": "!"
-     "app_options/quickshell/ascii_mode": true
-     "app_options/pinentry/ascii_mode": true
-     "app_options/pinentry-qt/ascii_mode": true
-     "app_options/pinentry-gnome3/ascii_mode": true
-     "app_options/pinentry-gtk-2/ascii_mode": true
-     "app_options/1Password/ascii_mode": true
-     "app_options/1password/ascii_mode": true
-     "app_options/org.keepassxc.KeePassXC/ascii_mode": true
-     "app_options/keepassxc/ascii_mode": true
-     "app_options/Bitwarden/ascii_mode": true
-     "app_options/bitwarden/ascii_mode": true
    ```
 
 > [!NOTE]
@@ -136,21 +115,123 @@ hyprctl reload config-only
 
 ---
 
-### 步骤 3：Fcitx5 状态隔离与密码框自动降级纯英文（核心根因与关键配置！）
+### 步骤 3：标点符号完全对齐 Windows 微软拼音（零候选框、单按直出、回车逻辑解析）
+
+很多从 Windows 迁移到 Linux 的用户在使用 Rime / 雾凇拼音时，会遇到极为困惑的标点行为：
+1. **多选候选弹窗**：按下 `\` 弹出 `1 、 2 \ 3 ＼`；按下 `>` 弹出 `1 》 2 〉 3 » 4 ›`；按下 `$` 弹出 `1 ￥ 2 $ 3 € ...`；按下 `[` 弹出 `1 「 2 【 3 〔 4 ［`。
+2. **回车异常上屏**：在候选浮窗出现时，按 Enter 键期望确认第 1 候选（如 `、`），结果却输出了第 2 候选（原生 ASCII `\`）。
+
+> [!IMPORTANT]
+> **标点三大核心疑问底层根因解析**：
+> 1. **为什么直接敲回车上了第 2 项（`\`）而不是第 1 项（`、`）？**
+>    - 在 Rime 状态机中，**空格键（Space）** 对应 `commit_candidate`（提交当前选中的第 1 候选）。
+>    - 而 **回车键（Enter）** 对应的是 `commit_raw_input`（废弃当前所有候选词，直接上屏用户物理键盘敲击的原生 ASCII 裸码）。当用户按下了物理键 `\` 时，原生输入字符正是 `\`。在默认候选列表中，半角 `\` 恰好被排在第 2 位，这就造成了“回车居然跳过候选 1 选了候选 2”的视觉假象。实际上回车根本不是在选字，而是在执行取消候选、裸码上屏！
+> 2. **为什么会有多选候选列表？到底是谁的问题？**
+>    - **归属于 Rime 上游默认设计 + 雾凇拼音直接继承**：在 `/usr/share/rime-data/punctuation.yaml` 中，Rime 原作者将大量标点定义为数组序列（如 `'\' : [ 、, '\', ＼ ]`、`'>' : [ 》, 〉, », › ]`），初衷是照顾港台繁体排版习惯。而雾凇拼音（rime-ice）直接全盘引入了 `punctuation.yaml`（`import_preset: default`），导致这些列表标点全部变成了“弹出候选框等用户按数字或空格挑选”，与 Windows 微软拼音“单按立即直出”的习惯完全脱节。
+> 3. **为什么不能直接在 `default.custom.yaml` 中打补丁？**
+>    - 若在 `custom.yaml` 中直接写 `"punctuator/half_shape/\\": "、"`，执行 `rime_deployer` 时会直接报错：`copy on write failed; incompatible node type: \`。这是因为底层节点原本是 sequence（数组），Rime 的 C++ patch 机制不允许将标量直接强行覆盖到数组节点上。
+
+#### 解决方案：配置用户级 `punctuation.yaml`
+Rime 方案构建时的文件加载优先级为：**用户目录 `~/.local/share/fcitx5/rime/` > 系统目录 `/usr/share/rime-data/`**。直接在用户目录提供一份全标量 `{ commit: ... }` 的 `punctuation.yaml`，即可一劳永逸对齐 Windows 微软拼音体验。
+
+创建或覆盖 `~/.local/share/fcitx5/rime/punctuation.yaml`：
+```yaml
+# Rime basic symbols (Windows Microsoft Pinyin aligned)
+# encoding: utf-8
+
+full_shape:
+  ' ' : { commit: '　' }
+  ',' : { commit: ， }
+  '.' : { commit: 。 }
+  '<' : { commit: 《 }
+  '>' : { commit: 》 }
+  '/' : { commit: '/' }
+  '?' : { commit: ？ }
+  ';' : { commit: ； }
+  ':' : { commit: ： }
+  '''' : { pair: [ '‘', '’' ] }
+  '"' : { pair: [ '“', '”' ] }
+  '\' : { commit: 、 }
+  '|' : { commit: '|' }
+  '`' : ｀
+  '~' : { commit: ～ }
+  '!' : { commit: '!' }
+  '@' : { commit: '@' }
+  '#' : { commit: '#' }
+  '%' : { commit: '%' }
+  '$' : { commit: ￥ }
+  '^' : { commit: …… }
+  '&' : ＆
+  '*' : { commit: '*' }
+  '(' : （
+  ')' : ）
+  '-' : －
+  '_' : ——
+  '+' : ＋
+  '=' : ＝
+  '[' : { commit: 【 }
+  ']' : { commit: 】 }
+  '{' : { commit: '{' }
+  '}' : { commit: '}' }
+
+half_shape:
+  ',' : { commit: ， }
+  '.' : { commit: 。 }
+  '<' : { commit: 《 }
+  '>' : { commit: 》 }
+  '/' : { commit: '/' }
+  '?' : { commit: ？ }
+  ';' : { commit: ； }
+  ':' : { commit: ： }
+  '''' : { pair: [ '‘', '’' ] }
+  '"' : { pair: [ '“', '”' ] }
+  '\' : { commit: 、 }
+  '|' : { commit: '|' }
+  '`' : '`'
+  '~' : { commit: ～ }
+  '!' : { commit: '!' }
+  '@' : '@'
+  '#' : '#'
+  '%' : '%'
+  '$' : { commit: ￥ }
+  '^' : { commit: …… }
+  '&' : '&'
+  '*' : '*'
+  '(' : （
+  ')' : ）
+  '-' : '-'
+  '_' : ——
+  '+' : '+'
+  '=' : '='
+  '[' : { commit: 【 }
+  ']' : { commit: 】 }
+  '{' : { commit: '{' }
+  '}' : { commit: '}' }
+```
+
+---
+
+### 步骤 4：Fcitx5 状态隔离与密码框自动降级纯英文（核心根因与关键配置！）
 
 > [!IMPORTANT]
 > **底层核心机制解析**：
-> 当系统检测到输入框具有密码属性（`CapabilityFlag::Password`，如 Polkit 提权弹窗、锁屏、浏览器密码框）且启用了 `AllowInputMethodForPassword=False` 时，Fcitx5 会在当前输入法列表中动态查找原生英文键盘布局（`keyboard-us`）。
-> **如果输入法列表里只有 `rime`，没有配置 `keyboard-us`，Fcitx5 就会因为找不到英文降级布局而无奈回退到 Rime，导致输密码时依然弹出中文拼音候选框！**
+> 1. 当系统检测到输入框具有密码属性（`CapabilityFlag::Password`，如 Polkit 提权弹窗、锁屏、浏览器密码框）且启用了 `AllowInputMethodForPassword=False` 时，Fcitx5 会在当前输入法列表中动态查找原生英文键盘布局（`keyboard-us`）。**如果输入法列表里只有 `rime`，没有配置 `keyboard-us`，Fcitx5 就会因为找不到英文降级布局而无奈回退到 Rime，导致输密码时依然弹出中文拼音候选框！**
+> 2. **引入 `keyboard-us` 后的闭环保证**：输入法列表中同时存在 `rime` 和 `keyboard-us` 时，必须显式配置 `ActiveByDefault=True` 和 `[Hotkey/TriggerKeys] 0=Control+space`。否则新开应用会默认以未激活（`keyboard-us` 纯英文）状态启动，且用户按 Shift 无法激活 Rime，导致被锁死在纯英文。
 
 #### 操作：
 1. **编辑全局行为**（`~/.config/fcitx5/config`）：
    ```ini
+   [Hotkey/TriggerKeys]
+   0=Control+space
+
    [Behavior]
+   # 默认激活输入法（确保程序启动时直接处于 Rime 状态，由 Rime 自行处理 Shift 中英翻转）
+   ActiveByDefault=True
+
    # 共享输入法状态设置为 Program（按应用程序隔离，互不污染）
    ShareInputState=Program
 
-   # 密码字段内禁用输入法（对网页密码输入框和 GUI 原生密码控件生效）
+   # 密码字段内禁用输入法（对网页密码输入框和 GUI 原生密码控件生效，自动降级 keyboard-us）
    AllowInputMethodForPassword=False
    ShowPreeditForPassword=False
    ```
@@ -179,7 +260,7 @@ hyprctl reload config-only
 
 ---
 
-### 步骤 4：终端默认英文与密码命令自切英文 Hook
+### 步骤 5：终端默认英文与密码命令自切英文 Hook
 
 通过轻量级 Shell Hook，在终端启动及调用密码命令时瞬间通过 DBus 将输入法置为英文状态。
 
@@ -209,7 +290,7 @@ unset __pwd_cmd
 
 ---
 
-### 步骤 5：系统锁屏与认证弹窗强制英文配置
+### 步骤 6：系统锁屏与认证弹窗强制英文配置
 
 1. **配置快捷键锁屏触发切英文**（编辑 `~/.config/hypr/bindings.lua`）：
    ```lua
@@ -259,7 +340,7 @@ unset __pwd_cmd
 
 ---
 
-### 步骤 6：编译部署与生效
+### 步骤 7：编译部署与生效
 
 执行以下命令编译 Rime 二进制 Schema 缓存并重启输入法服务：
 
@@ -270,8 +351,10 @@ rime_deployer --build ~/.local/share/fcitx5/rime /usr/share/rime-data ~/.local/s
 # 2. 同步配置到 build 目录
 cp ~/.local/share/fcitx5/rime/fcitx5.yaml ~/.local/share/fcitx5/rime/build/fcitx5.yaml
 
-# 3. 重启 Fcitx5 用户服务
-systemctl --user restart omarchy-fcitx5.service
+# 3. 彻底重启 Fcitx5 服务（关键！切勿仅使用 fcitx5-remote -r）
+# 底层根因：fcitx5-remote -r 仅重载配置，不会重载 profile 输入法列表与内存中的 Rime 状态机！
+# 必须彻底重启进程，Fcitx5 才会重新读取 profile 与全新编译的 schema。
+systemctl --user restart omarchy-fcitx5.service 2>/dev/null || (pkill -x fcitx5 && sleep 0.5 && (pgrep -x fcitx5 >/dev/null || fcitx5 -d >/dev/null 2>&1))
 ```
 
 ---
@@ -304,6 +387,14 @@ systemctl --user restart omarchy-fcitx5.service
    * 触发图形提权（如在终端运行 `pkexec ls` 或启动 Windows VM 弹窗）；
    * 弹出 `Authorize running ... / Enter password` 弹窗后，直接敲击密码字符；
    * 验证是否直接以纯英文输入，绝不弹出中文拼音候选框。
+9. **Windows 原生中文标点直出测试（零候选弹窗）**：
+   * 在中文模式下，分别敲击键盘标点：
+     * 按 `\` 键：**立即直接上屏 `、`**，绝不弹出 `1 、 2 \ 3 ＼` 多选浮窗；
+     * 按 `Shift + .`（`>` 键）：**立即直接上屏 `》`**，绝不弹出 `1 》 2 〉 3 »` 浮窗；
+     * 按 `Shift + 4`（`$` 键）：**立即直接上屏 `￥`**，绝不弹出货币符号浮窗；
+     * 按 `[` 和 `]` 键：**分别立即直接上屏 `【` 和 `】`**，绝不弹出 `「` 或 `」`；
+     * 按 `Shift + 6`（`^` 键）：**立即直接上屏 `……`** 省略号；
+     * 按 `Shift + -`（`_` 键）：**立即直接上屏 `——`** 破折号。
 
 ---
 

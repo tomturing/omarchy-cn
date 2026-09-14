@@ -34,10 +34,12 @@ bash <skill_dir>/scripts/check_ime_env.sh
 | Check Item | Target Expected State | Failure Root Cause |
 | :--- | :--- | :--- |
 | **XKB `kb_options`** | `compose:caps` (No `both_capslock_cancel`) | XKB driver rule intercepts and drops lone Shift KeyUp (release) events. |
-| **Fcitx5 Global Config** | `ShareInputState=Program`<br>`AllowInputMethodForPassword=False` | Windows inherit each other's IME state; password fields fail to trigger passthrough. |
+| **Fcitx5 Global Config** | `ActiveByDefault=True`<br>`ShareInputState=Program`<br>`AllowInputMethodForPassword=False`<br>`[Hotkey/TriggerKeys] 0=Control+space` | Missing `ActiveByDefault` starts apps in Inactive mode; missing `TriggerKeys` locks user in English when `keyboard-us` is present. |
 | **Fcitx5 Profile** | Contains both `rime` and `keyboard-us` | Without `keyboard-us`, Fcitx5 fails to find an English layout to downgrade to when focusing password fields, falling back to Rime. |
-| **Rime Custom Patches** | `ascii_composer/switch_key/Shift_L: commit_code` | `key_binder` was incorrectly used instead of the native `ascii_composer` modifier state machine. |
+| **Rime Custom Patches** | `ascii_composer/switch_key/Shift_L: commit_code`<br>(No `app_options` in schema patch) | `key_binder` triggers on KeyDown rather than KeyUp; rogue `app_options` in schema locks apps into ASCII permanently. |
+| **Punctuation Mapping** | User-level `punctuation.yaml` with `{ commit: ... }` | Default upstream defines symbols as lists `[ ... ]` causing candidate popups (`\`, `>`, `$`); Enter triggers `commit_raw_input` (ASCII commit). |
 | **Shell Hooks (`~/.bashrc`)** | DBus `SetAsciiMode true` hook + `sudo` wrapper | Terminal emulators lack password context flags; interactive sessions require lightweight 0ms async DBus initialization. |
+| **Daemon Reload** | Full process restart (Not just `fcitx5-remote -r`) | `fcitx5-remote -r` only reloads configs; it DOES NOT reload `profile` or running Rime schemas in memory. |
 
 ---
 
@@ -65,11 +67,16 @@ bash <skill_dir>/scripts/check_ime_env.sh
      "punctuator/half_shape/!": "!"
      "punctuator/full_shape/!": "!"
    ```
+   *(Note: NEVER put `app_options` here; keep them in `fcitx5.yaml` to avoid permanent ASCII lock).*
 
-### Recipe 2: Isolate App State & Enable Password Downgrade
+### Recipe 2: Isolate App State, Prevent Lockout & Enable Password Downgrade
 1. Edit `~/.config/fcitx5/config`:
    ```ini
+   [Hotkey/TriggerKeys]
+   0=Control+space
+
    [Behavior]
+   ActiveByDefault=True
    ShareInputState=Program
    AllowInputMethodForPassword=False
    ShowPreeditForPassword=False
@@ -86,6 +93,11 @@ bash <skill_dir>/scripts/check_ime_env.sh
 
    [Groups/0/Items/1]
    Name=keyboard-us   # MUST be present for password fallback
+   ```
+3. Deploy schemas and **fully restart Fcitx5** (do NOT use `fcitx5-remote -r` alone):
+   ```bash
+   rime_deployer --build ~/.local/share/fcitx5/rime /usr/share/rime-data ~/.local/share/fcitx5/rime/build
+   systemctl --user restart omarchy-fcitx5.service 2>/dev/null || (pkill -x fcitx5 && sleep 0.5 && fcitx5 -d)
    ```
 
 ### Recipe 3: Shell Hook for Terminal English Default & CLI Passwords
@@ -115,6 +127,14 @@ hl.unbind("SUPER + CTRL + L")
 o.bind("SUPER + CTRL + L", "Lock system", "bash -c 'gdbus call --session --dest org.fcitx.Fcitx5 --object-path /rime --method org.fcitx.Fcitx.Rime1.SetAsciiMode true >/dev/null 2>&1; omarchy-system-lock'")
 ```
 
+### Recipe 5: Windows-Aligned Punctuation Direct Commit (Zero Candidate Menus)
+Copy `templates/punctuation.yaml` to `~/.local/share/fcitx5/rime/punctuation.yaml`.
+This directly maps all Chinese punctuation (`\`, `>`, `$`, `[`, `]`, `{`, `}`, `^`, `_`, `~`) as scalar `{ commit: ... }`, completely eliminating the multi-candidate popup and raw Enter commit issue. Recompile and restart:
+```bash
+rime_deployer --build ~/.local/share/fcitx5/rime /usr/share/rime-data ~/.local/share/fcitx5/rime/build
+systemctl --user restart omarchy-fcitx5.service 2>/dev/null || (pkill -x fcitx5 && sleep 0.5 && fcitx5 -d)
+```
+
 ---
 
 ## 4. One-Click Automation Script
@@ -133,3 +153,4 @@ bash <skill_dir>/scripts/apply_input_optimizations.sh
 3. **Combination Misfire Test**: While in Chinese mode, hold Shift and press `1` -> outputs `!` without flipping IME state.
 4. **sudo Password Test**: While in Chinese mode, run `sudo ls` -> on password prompt, type password -> pure English, no candidates.
 5. **Polkit Dialog Test**: Trigger privileged action (e.g. `pkexec ls`) -> on GUI password dialog, type characters -> pure English dots, no candidate popup.
+6. **Windows Punctuation Direct Commit**: In Chinese mode, press `\` -> immediately outputs `、` (no popup); press `>` -> `》`; press `$` -> `￥`; press `[` / `]` -> `【` / `】`.

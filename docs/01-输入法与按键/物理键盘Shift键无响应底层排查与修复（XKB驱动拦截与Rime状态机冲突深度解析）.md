@@ -204,6 +204,11 @@ hyprctl getoption input:kb_options
 ```
 确保输出中**不包含** `shift:both_capslock_cancel`。
 
+### 4. 为什么引入 keyboard-us 降级布局后必须配置 ActiveByDefault=True 与 TriggerKeys？
+* **状态机断裂隐患**：当 Fcitx5 的 profile 中同时配置了 `rime` 与 `keyboard-us` 时，如果未在 `~/.config/fcitx5/config` 中启用 `ActiveByDefault=True`，新窗口或新启动的应用会默认处于“未激活”（即 `keyboard-us` 纯英文状态）。
+* 在 `keyboard-us` 状态下，按键直接由系统 XKB 处理，Shift 键根本不会传递给 Rime 状态机。若此时 `TriggerKeys` 为空，用户将既无法通过 Shift 切中文，也无法通过快捷键激活输入法，导致被锁死在纯英文。
+* 因此，`ActiveByDefault=True` 与 `[Hotkey/TriggerKeys] 0=Control+space` 是闭环逻辑的绝对前提。
+
 ---
 
 ## 五、完整验证检查清单

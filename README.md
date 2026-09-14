@@ -71,6 +71,8 @@ omarchy-cn/
     ├── rime_ice.custom.yaml                       # 雾凇拼音专属方案补丁模板
     ├── fcitx5.yaml                                # 桌面组件与密码应用级策略模板
     ├── fcitx5-profile                             # 包含 keyboard-us 降级布局的 profile 模板
+    ├── fcitx5-config                              # 全局配置模板（含 ActiveByDefault 与 TriggerKeys）
+    ├── punctuation.yaml                           # Windows 体验标点直出模板（零候选弹窗）
     ├── bashrc_ime_snippet.sh                      # 终端默认英文与 sudo 包装 Hook 片段
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
     ├── docker-bypass-clash.service                # 宿主机网络隔离 systemd 模板

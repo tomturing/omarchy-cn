@@ -1,0 +1,14 @@
+# 存放路径: ~/.config/fcitx5/config
+[Hotkey/TriggerKeys]
+0=Control+space
+
+[Behavior]
+# 默认激活输入法（确保程序启动时直接处于 Rime 输入状态，依靠 Shift 或 ascii_mode 处理中英文）
+ActiveByDefault=True
+# 共享输入法状态设置为按程序隔离（Program）
+ShareInputState=Program
+# 密码字段内禁用输入法（对网页密码输入框和 GUI 原生密码控件生效，自动降级至 keyboard-us）
+AllowInputMethodForPassword=False
+ShowPreeditForPassword=False
+# 定时保存用户数据（分钟）
+AutoSavePeriod=30
