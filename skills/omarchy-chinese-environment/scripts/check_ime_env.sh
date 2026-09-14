@@ -21,24 +21,26 @@ else
     echo -e "${GREEN}[PASS] 物理按键放行正常 (${KB_OPT})${NC}"
 fi
 
-# 2. 检查 Fcitx5 状态隔离与密码保护与默认激活
-echo -n "[2/8] 检查 Fcitx5 全局状态隔离、密码框保护与 ActiveByDefault... "
+# 2. 检查 Fcitx5 全局状态隔离与 Rime 会话跟随
+echo -n "[2/9] 检查 Fcitx5 全局状态隔离与 Rime 会话跟随... "
 CONFIG_FILE="$HOME/.config/fcitx5/config"
+RIME_CONF="$HOME/.config/fcitx5/conf/rime.conf"
 if [ -f "$CONFIG_FILE" ]; then
     SHARE_STATE=$(grep -E "^ShareInputState=" "$CONFIG_FILE" || true)
     PWD_PROTECT=$(grep -E "^AllowInputMethodForPassword=" "$CONFIG_FILE" || true)
     ACTIVE_BY_DEF=$(grep -E "^ActiveByDefault=" "$CONFIG_FILE" || true)
-    if [[ "$SHARE_STATE" == *"Program"* ]] && [[ "$PWD_PROTECT" == *"False"* ]] && [[ "$ACTIVE_BY_DEF" == *"True"* ]]; then
-        echo -e "${GREEN}[PASS] ShareInputState=Program, AllowInputMethodForPassword=False, ActiveByDefault=True${NC}"
+    RIME_INPUT_STATE=$(grep -E "^InputState=" "$RIME_CONF" 2>/dev/null || true)
+    if [[ "$SHARE_STATE" == *"Program"* ]] && [[ "$PWD_PROTECT" == *"False"* ]] && [[ "$ACTIVE_BY_DEF" == *"True"* ]] && [[ "$RIME_INPUT_STATE" == *"Follow Global Configuration"* || "$RIME_INPUT_STATE" == *"Program"* ]]; then
+        echo -e "${GREEN}[PASS] 全局隔离与 Rime 会话跟随均已就绪 (Program / Follow Global Configuration)${NC}"
     else
-        echo -e "${YELLOW}[WARN] 配置未完全就绪 (ShareInputState: $SHARE_STATE, AllowPassword: $PWD_PROTECT, ActiveByDefault: $ACTIVE_BY_DEF)${NC}"
+        echo -e "${YELLOW}[WARN] 状态隔离未完全闭环 (ShareInputState: $SHARE_STATE, AllowPassword: $PWD_PROTECT, RimeInputState: $RIME_INPUT_STATE)${NC}"
     fi
 else
     echo -e "${RED}[FAIL] 未找到 $CONFIG_FILE${NC}"
 fi
 
 # 3. 检查 Fcitx5 TriggerKeys 兜底快捷键
-echo -n "[3/8] 检查 Fcitx5 TriggerKeys 兜底激活热键... "
+echo -n "[3/9] 检查 Fcitx5 TriggerKeys 兜底激活热键... "
 if [ -f "$CONFIG_FILE" ]; then
     if grep -q "\[Hotkey/TriggerKeys\]" "$CONFIG_FILE" || grep -E -q "^TriggerKeys=[^[:space:]]+" "$CONFIG_FILE"; then
         echo -e "${GREEN}[PASS] 已配置 TriggerKeys 兜底快捷键，不会发生英文锁死${NC}"
@@ -50,7 +52,7 @@ else
 fi
 
 # 4. 检查 Fcitx5 输入法列表 (keyboard-us 降级布局检查)
-echo -n "[4/8] 检查 Fcitx5 输入法列表中是否包含 keyboard-us 降级布局... "
+echo -n "[4/9] 检查 Fcitx5 输入法列表中是否包含 keyboard-us 降级布局... "
 PROFILE_FILE="$HOME/.config/fcitx5/profile"
 if [ -f "$PROFILE_FILE" ]; then
     if grep -q "keyboard-us" "$PROFILE_FILE"; then
@@ -63,7 +65,7 @@ else
 fi
 
 # 5. 检查 Rime 状态机补丁与 app_options 隔离
-echo -n "[5/8] 检查 Rime 雾凇拼音 Shift 松开切换补丁与 Schema 纯净度... "
+echo -n "[5/9] 检查 Rime 雾凇拼音 Shift 松开切换补丁与 Schema 纯净度... "
 RIME_CUSTOM="$HOME/.local/share/fcitx5/rime/default.custom.yaml"
 if [ -f "$RIME_CUSTOM" ]; then
     HAS_SHIFT=$(grep -E -q "ascii_composer/switch_key/Shift_L" "$RIME_CUSTOM" && echo "yes" || echo "no")
@@ -80,7 +82,7 @@ else
 fi
 
 # 6. 检查标点符号映射是否对齐 Windows（顿号、书名号、人民币符号直通上屏）
-echo -n "[6/8] 检查中文标点符号映射（Windows 体验：、》￥ 直接上屏，不弹候选）... "
+echo -n "[6/9] 检查中文标点符号映射（Windows 体验：、》￥ 直接上屏，不弹候选）... "
 PUNCT_FILE="$HOME/.local/share/fcitx5/rime/punctuation.yaml"
 if [ -f "$PUNCT_FILE" ] && grep -q "'\\\\' : { commit: 、 }" "$PUNCT_FILE"; then
     echo -e "${GREEN}[PASS] 已配置 punctuation.yaml，标点符号单按直接上屏${NC}"
@@ -89,7 +91,7 @@ else
 fi
 
 # 7. 检查 ~/.bashrc 终端 Hook 与密码包装
-echo -n "[7/8] 检查 ~/.bashrc 终端英文 Hook 与 sudo 包装... "
+echo -n "[7/9] 检查 ~/.bashrc 终端英文 Hook 与 sudo 包装... "
 BASHRC="$HOME/.bashrc"
 if [ -f "$BASHRC" ]; then
     if grep -q "SetAsciiMode true" "$BASHRC" && grep -q "__pwd_cmd in sudo" "$BASHRC"; then
@@ -101,8 +103,21 @@ else
     echo -e "${RED}[FAIL] 未找到 $BASHRC${NC}"
 fi
 
-# 8. 检查 Fcitx5 进程运行与输入法激活状态
-echo -n "[8/8] 检查 Fcitx5 守护进程与输入法激活状态... "
+# 8. 检查 Omarchy Polkit Agent QML 密码框 inputMethodHints 保护
+echo -n "[8/9] 检查 Omarchy Polkit Agent 密码框 inputMethodHints... "
+POLKIT_QML="/usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml"
+if [ -f "$POLKIT_QML" ]; then
+    if grep -q "inputMethodHints" "$POLKIT_QML"; then
+        echo -e "${GREEN}[PASS] Polkit 密码输入框已声明 Hints，密码直通降级生效${NC}"
+    else
+        echo -e "${YELLOW}[WARN] PolkitAgent.qml 缺失 inputMethodHints，可能无法触发密码框自动降级${NC}"
+    fi
+else
+    echo -e "${YELLOW}[INFO] 未找到 $POLKIT_QML (非 Omarchy 原生 Polkit 环境)${NC}"
+fi
+
+# 9. 检查 Fcitx5 进程运行与输入法激活状态
+echo -n "[9/9] 检查 Fcitx5 守护进程与输入法激活状态... "
 if pgrep -x fcitx5 >/dev/null 2>&1; then
     CURRENT_IM=$(fcitx5-remote -n 2>/dev/null || true)
     REMOTE_STATE=$(fcitx5-remote 2>/dev/null || true)

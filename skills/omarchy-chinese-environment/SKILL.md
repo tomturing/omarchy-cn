@@ -35,7 +35,9 @@ bash <skill_dir>/scripts/check_ime_env.sh
 | :--- | :--- | :--- |
 | **XKB `kb_options`** | `compose:caps` (No `both_capslock_cancel`) | XKB driver rule intercepts and drops lone Shift KeyUp (release) events. |
 | **Fcitx5 Global Config** | `ActiveByDefault=True`<br>`ShareInputState=Program`<br>`AllowInputMethodForPassword=False`<br>`[Hotkey/TriggerKeys] 0=Control+space` | Missing `ActiveByDefault` starts apps in Inactive mode; missing `TriggerKeys` locks user in English when `keyboard-us` is present. |
+| **Rime Session Isolation** | `~/.config/fcitx5/conf/rime.conf` with `InputState="Follow Global Configuration"` | Rime engine C++ defaults to `SharedStatePolicy::All`, sharing 1 session across all apps and ignoring `app_options` (quickshell/pinentry). |
 | **Fcitx5 Profile** | Contains both `rime` and `keyboard-us` | Without `keyboard-us`, Fcitx5 fails to find an English layout to downgrade to when focusing password fields, falling back to Rime. |
+| **Polkit QML Hints** | `/usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml` contains `inputMethodHints` | QtQuick `echoMode: TextInput.Password` only masks display; without `inputMethodHints`, Qt does not declare `CapabilityFlag::Password` to Wayland. |
 | **Rime Custom Patches** | `ascii_composer/switch_key/Shift_L: commit_code`<br>(No `app_options` in schema patch) | `key_binder` triggers on KeyDown rather than KeyUp; rogue `app_options` in schema locks apps into ASCII permanently. |
 | **Punctuation Mapping** | User-level `punctuation.yaml` with `{ commit: ... }` | Default upstream defines symbols as lists `[ ... ]` causing candidate popups (`\`, `>`, `$`); Enter triggers `commit_raw_input` (ASCII commit). |
 | **Shell Hooks (`~/.bashrc`)** | DBus `SetAsciiMode true` hook + `sudo` wrapper | Terminal emulators lack password context flags; interactive sessions require lightweight 0ms async DBus initialization. |
@@ -94,7 +96,11 @@ bash <skill_dir>/scripts/check_ime_env.sh
    [Groups/0/Items/1]
    Name=keyboard-us   # MUST be present for password fallback
    ```
-3. Deploy schemas and **fully restart Fcitx5** (do NOT use `fcitx5-remote -r` alone):
+3. Edit `~/.config/fcitx5/conf/rime.conf` (CRITICAL: Rime internal session isolation):
+   ```ini
+   InputState="Follow Global Configuration"
+   ```
+4. Deploy schemas and **fully restart Fcitx5** (do NOT use `fcitx5-remote -r` alone):
    ```bash
    rime_deployer --build ~/.local/share/fcitx5/rime /usr/share/rime-data ~/.local/share/fcitx5/rime/build
    systemctl --user restart omarchy-fcitx5.service 2>/dev/null || (pkill -x fcitx5 && sleep 0.5 && fcitx5 -d)
@@ -133,6 +139,20 @@ This directly maps all Chinese punctuation (`\`, `>`, `$`, `[`, `]`, `{`, `}`, `
 ```bash
 rime_deployer --build ~/.local/share/fcitx5/rime /usr/share/rime-data ~/.local/share/fcitx5/rime/build
 systemctl --user restart omarchy-fcitx5.service 2>/dev/null || (pkill -x fcitx5 && sleep 0.5 && fcitx5 -d)
+```
+
+### Recipe 6: Fix Polkit GUI Password Dialog Automatic English (QtQuick Patch)
+In `/usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml`, add `inputMethodHints` to `passwordInput`:
+```qml
+TextInput {
+    id: passwordInput
+    echoMode: TextInput.Password
+    inputMethodHints: Qt.ImhHiddenText | Qt.ImhSensitiveData | Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+}
+```
+Restart Quickshell shell to apply:
+```bash
+/usr/share/omarchy/bin/omarchy-restart-shell
 ```
 
 ---

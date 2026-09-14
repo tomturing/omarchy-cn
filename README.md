@@ -72,6 +72,7 @@ omarchy-cn/
     ├── fcitx5.yaml                                # 桌面组件与密码应用级策略模板
     ├── fcitx5-profile                             # 包含 keyboard-us 降级布局的 profile 模板
     ├── fcitx5-config                              # 全局配置模板（含 ActiveByDefault 与 TriggerKeys）
+    ├── rime.conf                                  # Rime 独立会话隔离配置模板（解除全局会话共享）
     ├── punctuation.yaml                           # Windows 体验标点直出模板（零候选弹窗）
     ├── bashrc_ime_snippet.sh                      # 终端默认英文与 sudo 包装 Hook 片段
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
@@ -92,10 +93,11 @@ omarchy-cn/
 ### 1. 输入法与按键优化 (`docs/01-输入法与按键`)
 * [**Fcitx5与Rime雾凇拼音全场景优化配置指南（Shift键松开切换、终端与密码框自动英文）**](./docs/01-输入法与按键/Fcitx5与Rime雾凇拼音全场景优化配置指南（Shift键松开切换、终端与密码框自动英文）.md)
   * **Shift 键松开切换**：移除 XKB 驱动层 `shift:both_capslock_cancel` 拦截，借助 Rime `ascii_composer` 状态机实现 Windows 原生级单按松开切换体验，长按组合键（如 `Shift + 1` 输入 `!`）绝不误切；
-  * **统一标点输出**：中英文状态下均输出标准半角感叹号 `!`；
+  * **统一标点输出与零候选直出**：中英文状态下均输出标准半角感叹号 `!`；彻底修正 `\` 输出顿号 `、`、`>` 输出书名号 `》` 等标点弹出多选悬浮窗和 Enter 键输出 ASCII 字符的异常交互；
   * **终端默认英文**：通过 Fcitx5 `ShareInputState=Program` 隔离与 `~/.bashrc` 轻量级异步 DBus Hook，实现新开终端 100% 默认英文且随时单按 Shift 切中文；
-  * **密码框全场景纯英文直通**：
-    * 深度解决 Fcitx5 底层 `AllowInputMethodForPassword=False` 必须依赖在输入法列表中显式配置 `keyboard-us` 降级布局的机制；
+  * **密码框全场景纯英文直通（双重闭环保障）**：
+    * 深度揭秘并修复两大隐蔽陷阱：Fcitx5 底层 `AllowInputMethodForPassword=False` 必须依赖在输入法列表中显式配置 `keyboard-us` 降级布局；以及 `fcitx5-rime` 源码默认硬编码 `SharedStatePolicy::All` 导致全局会话串用绕过 `app_options` 的问题（配置 `conf/rime.conf` 解除共享）；
+    * 深度修复 Omarchy Quickshell Polkit 提权弹窗缺少 `inputMethodHints` 导致 Wayland 协议无法识别密码框的 QML 缺陷；
     * 终端 `sudo`/`su`/`pkexec` 预触发英文切换；
     * 锁屏界面（`Super+Ctrl+L`）与 Polkit 图形提权弹窗 100% 纯英文输入，彻底根除输密码弹中文候选框问题。
 * [**物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）**](./docs/01-输入法与按键/物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）.md)

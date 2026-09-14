@@ -101,8 +101,14 @@ CFG
 0=Control+space
 CFG
     fi
+    # 确保 Rime 内部会话隔离跟随全局配置（避免全局共享状态与 app_options 被绕过）
+    mkdir -p "$HOME/.config/fcitx5/conf"
+    cp "$TEMPLATES_DIR/rime.conf" "$HOME/.config/fcitx5/conf/rime.conf"
+    echo -e "   [${GREEN}OK${NC}] Rime 状态隔离设为 Follow Global Configuration"
 else
     cp "$TEMPLATES_DIR/fcitx5-config" "$CONFIG_FILE"
+    mkdir -p "$HOME/.config/fcitx5/conf"
+    cp "$TEMPLATES_DIR/rime.conf" "$HOME/.config/fcitx5/conf/rime.conf"
 fi
 echo -e "   [${GREEN}OK${NC}] ActiveByDefault=True 与 ShareInputState=Program 配置完成"
 
@@ -128,6 +134,17 @@ cp "$TEMPLATES_DIR/rime_ice.custom.yaml" "$HOME/.local/share/fcitx5/rime/rime_ic
 cp "$TEMPLATES_DIR/punctuation.yaml" "$HOME/.local/share/fcitx5/rime/punctuation.yaml"
 cp "$TEMPLATES_DIR/fcitx5.yaml" "$HOME/.local/share/fcitx5/rime/fcitx5.yaml"
 echo -e "   [${GREEN}OK${NC}] 状态机与 Windows 标点直通映射已部署就绪"
+
+# 补充：检查并修复 Omarchy Polkit QML 密码框 inputMethodHints 缺失问题
+POLKIT_QML="/usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml"
+if [ -f "$POLKIT_QML" ] && ! grep -q "inputMethodHints" "$POLKIT_QML"; then
+    echo -e "-> 修复 Omarchy Polkit 密码框 inputMethodHints 缺失 (需要 sudo 权限) ..."
+    sudo sed -i '/passwordCharacter: /a \            inputMethodHints: Qt.ImhHiddenText | Qt.ImhSensitiveData | Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText' "$POLKIT_QML" 2>/dev/null || true
+    if command -v omarchy-restart-shell >/dev/null 2>&1; then
+        omarchy-restart-shell >/dev/null 2>&1 || true
+    fi
+    echo -e "   [${GREEN}OK${NC}] Omarchy PolkitAgent 密码框 Hints 注入完成"
+fi
 
 # 6. 配置 ~/.bashrc 终端 Hook 与 sudo 包装
 echo -e "-> [6/8] 配置 ~/.bashrc 终端默认英文 Hook 与 sudo 包装 ..."

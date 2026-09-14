@@ -258,6 +258,15 @@ half_shape:
    0=Default
    ```
 
+3. **配置 Rime 会话隔离遵循全局策略（关键隐藏深坑！）**：
+   * **底层根因**：`fcitx5-rime` 插件在 C++ 内部维护了独立的会话池机制（`RimeSessionPool`）。在 `fcitx5-rime` 源码中，其共享策略默认被硬编码为 `SharedStatePolicy::All`！
+   * **后果**：即使在全局 `~/.config/fcitx5/config` 中配置了 `ShareInputState=Program`，Rime 也会在所有应用程序之间强制共用同一个输入会话。如果浏览器当前处于中文模式，当弹出系统提权认证（如 Polkit / Quickshell）时，Rime 会直接复用该中文会话，导致在 `fcitx5.yaml` 中配置的 `app_options: quickshell: ascii_mode: true` 完全被跳过！
+   * **修复方案**：创建并配置 `~/.config/fcitx5/conf/rime.conf`：
+   ```ini
+   # 强制 Rime 内部会话状态遵循 Fcitx5 全局的 Program 应用程序级别隔离策略
+   InputState="Follow Global Configuration"
+   ```
+
 ---
 
 ### 步骤 5：终端默认英文与密码命令自切英文 Hook
@@ -338,6 +347,22 @@ unset __pwd_cmd
        ascii_mode: true
    ```
 
+3. **修复 Omarchy Polkit 提权弹窗缺少 `inputMethodHints`（QtQuick 密码字段根治补丁）**：
+   * **底层根因**：Omarchy 的桌面环境基于 Quickshell（QtQuick / QML）构建，系统图形提权弹窗位于 `/usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml`。原生代码中密码输入框仅设置了 `echoMode: TextInput.Password`，这在 QtQuick 中**仅用于将文字渲染为圆点掩码，并未向 Wayland/DBus 文本输入协议传递密码语义属性**（输入上下文的能力标识 `CapabilityFlag` 缺失 `Password` 和 `SensitiveData` 位）。
+   * **后果**：Fcitx5 的 `AllowInputMethodForPassword=False` 机制依赖 Wayland 传递的 `CapabilityFlag::Password` 标识。由于 Quickshell 未上报该标识，Fcitx5 根本不知道当前聚焦的是密码框，因此不会触发自动降级到 `keyboard-us` 英文布局！
+   * **修复方案**：为 `PolkitAgent.qml` 中的 `passwordInput` 控件补齐标准密码输入语义提示（需要 `sudo` 权限）：
+   ```qml
+   // /usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml
+   TextInput {
+       id: passwordInput
+       // ... 原有属性保持不变 ...
+       echoMode: TextInput.Password
+       // 新增下行：向 Wayland/Fcitx5 显式声明这是敏感密码文本字段
+       inputMethodHints: Qt.ImhHiddenText | Qt.ImhSensitiveData | Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+   }
+   ```
+   *修改完成后执行 `/usr/share/omarchy/bin/omarchy-restart-shell` 重启 Quickshell 即可生效。*
+
 ---
 
 ### 步骤 7：编译部署与生效
@@ -413,4 +438,6 @@ fcitx5-remote -s rime >/dev/null 2>&1 || true
 | **检查物理键盘 XKB 选项** | `hyprctl getoption input:kb_options` | 必须为 `str: compose:caps`，绝不能有 `both_capslock_cancel` |
 | **检查当前聚焦窗口模式** | `gdbus call --session --dest org.fcitx.Fcitx5 --object-path /rime --method org.fcitx.Fcitx.Rime1.IsAsciiMode` | 英文输出 `(true,)`，中文输出 `(false,)` |
 | **检查 Fcitx5 运行状态** | `fcitx5-remote` | 正常运行应输出 `2` |
+| **检查 Rime 会话隔离策略** | `cat ~/.config/fcitx5/conf/rime.conf` | 必须包含 `InputState="Follow Global Configuration"` |
+| **检查 Polkit 密码语义提示** | `grep -n "inputMethodHints" /usr/share/omarchy/shell/plugins/polkit/PolkitAgent.qml` | 应包含 `Qt.ImhHiddenText` |
 | **检查 sudo 命令包装状态** | `type sudo` | 应显示为包含 `SetAsciiMode true` 的 shell 函数 |
