@@ -1,17 +1,18 @@
 ---
 name: omarchy-windows-vm-tuning
-description: Diagnose, isolate network, and optimize Windows 11 VM (omarchy-windows-vm / dockurr/windows) on Omarchy (Arch Linux + Hyprland). Use when user reports issues with Windows VM network interference (Clash Fake-IP conflicts, VPN connection failure, Sangfor SSL VPN errors), slow Docker download of Windows images, Windows VM high CPU/RAM/disk usage, or requests performance slimming and instant Btrfs CoW snapshot backup.
+description: Diagnose, isolate network, optimize performance, and resolve crash issues on Windows 11 VM (omarchy-windows-vm / dockurr/windows) under Omarchy (Arch Linux + Hyprland). Use when user reports issues with Windows VM network interference (Clash Fake-IP conflicts, VPN connection failure, Sangfor SSL VPN errors), slow Docker download of Windows images, Windows VM high CPU/RAM/disk usage, requests Btrfs CoW snapshots, or encounters VM window disappearing / FreeRDP clipboard SIGSEGV crashes.
 ---
 
-# Omarchy Windows 容器虚拟机网络隔离与性能调优 Skill
+# Omarchy Windows 容器虚拟机网络隔离、性能调优与故障排查 Skill
 
-This skill provides comprehensive diagnostics, policy routing network isolation recipes, and non-destructive Windows 11 performance slimming tools for running containerized Windows VMs (`omarchy-windows-vm` based on `dockurr/windows`) on **Omarchy (Arch Linux + Hyprland)**.
+This skill provides comprehensive diagnostics, policy routing network isolation recipes, non-destructive Windows 11 performance slimming tools, and client crash recovery for running containerized Windows VMs (`omarchy-windows-vm` based on `dockurr/windows`) on **Omarchy (Arch Linux + Hyprland)**.
 
 ---
 
 ## 1. When to Use This Skill
 
 Activate this skill whenever a user encounters any of the following symptoms:
+* **VM Window Disappears / False Crash**: The `Windows VM - Omarchy` window suddenly vanishes during copy-paste or web browsing, while the backend QEMU process is still healthy (FreeRDP 3.31.1 `xf_cliprdr.c` SIGSEGV crash).
 * **VPN Connection Failure in VM**: Sangfor EasyConnect / aTrust or corporate SSL VPN reports "网络连接错误，请检查网络" (Network connection error).
 * **Fake-IP / Proxy Pollution**: Domain name resolution inside the VM returns Fake-IP (`198.18.x.x`) due to host Clash TUN mode interception.
 * **WeCom Timestamp Mismatch**: Enterprise WeChat messages show "昨天" (Yesterday) due to UTC-8 Pacific time zone deviation.
@@ -23,7 +24,7 @@ Activate this skill whenever a user encounters any of the following symptoms:
 
 ## 2. Quick Diagnostic Workflow
 
-Run the bundled diagnostic script to check host routing and container status:
+Run the bundled diagnostic script to check host routing, container status, and RDP client stability:
 
 ```bash
 bash <skill_dir>/scripts/check_vm_network.sh
@@ -35,6 +36,7 @@ bash <skill_dir>/scripts/check_vm_network.sh
 | **Linux Policy Route `pref 8990`** | `from 172.16.0.0/12 lookup main` | Docker VM traffic is being intercepted by Clash TUN (`pref 9000`). |
 | **systemd Persistence Service** | `docker-bypass-clash.service` active | Policy routes will be wiped upon host reboot. |
 | **VM DNS Resolution** | Resolves to real public IP (e.g. `223.5.5.5`) | VM inherits host Docker bridge DNS (`172.17.0.1`), returning Clash Fake-IPs (`198.18.x.x`). |
+| **RDP Client Selection** | `sdl-freerdp3` | Legacy `xfreerdp3` triggers SIGSEGV on clipboard format synchronization (`xf_cliprdr.c:396`). |
 | **VM Background Services** | `SysMain`, `WSearch`, `DiagTrack` disabled | Windows indexing and superfetch constantly thrash virtual disk I/O. |
 
 ---
@@ -69,7 +71,25 @@ Set-TimeZone -Id "China Standard Time"
 
 ---
 
-## 4. Windows 11 Extreme Performance Slimming Recipe
+## 4. Fix FreeRDP Clipboard Crash (Migrate to `sdl-freerdp3`)
+
+When the remote desktop window crashes unexpectedly during copy/paste, `xfreerdp3` hit an upstream NULL pointer dereference in `xf_cliprdr_is_atom_available`.
+
+### Automated One-Click Fix:
+```bash
+bash <skill_dir>/scripts/fix_vm_freerdp_crash.sh
+```
+
+### Manual Command:
+```bash
+sudo sed -i.bak 's/xfreerdp3 \/u:"\$WIN_USER"/sdl-freerdp3 \/u:"\$WIN_USER"/' /usr/share/omarchy/bin/omarchy-windows-vm
+```
+* **Why it works**: `sdl-freerdp3` uses the modern SDL clipboard architecture, completely bypassing the flawed X11 `xf_cliprdr.c` code path while maintaining 100% parameter compatibility.
+* **Upstream Status**: Tracked in Omarchy Issue [#11789](https://github.com/omacom/omarchy/issues/11789).
+
+---
+
+## 5. Windows 11 Extreme Performance Slimming Recipe
 
 Run the bundled PowerShell script inside the Windows VM (Administrator terminal):
 
@@ -89,7 +109,7 @@ Run the bundled PowerShell script inside the Windows VM (Administrator terminal)
 
 ---
 
-## 5. Btrfs Instant Zero-Cost Snapshot Backup
+## 6. Btrfs Instant Zero-Cost Snapshot Backup
 
 Take advantage of Omarchy's native Btrfs filesystem CoW (Copy-on-Write):
 
@@ -106,7 +126,7 @@ bash <skill_dir>/scripts/snapshot_vm_btrfs.sh status
 
 ---
 
-## 6. Pre-seeding Windows 11 ISO (Download Bypass)
+## 7. Pre-seeding Windows 11 ISO (Download Bypass)
 
 To skip the 5GB online download during container deployment:
 1. Pre-download `win11x64.iso` using IDM / aria2 externally.
