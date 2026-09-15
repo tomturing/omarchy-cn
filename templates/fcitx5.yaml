@@ -14,6 +14,8 @@ app_options:
     ascii_mode: true
   TUI.float:
     ascii_mode: true
+  sshs-floating:
+    ascii_mode: true
   ssh-manager:
     ascii_mode: true
   WindTerm:

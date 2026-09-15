@@ -114,13 +114,16 @@ Host dev-homelab
 
 ```bash
 #!/bin/bash
-# 启动原生 Wayland foot 终端，指定 app-id 为 sshs-floating
-foot --app-id=sshs-floating --title="SSH Sessions" sshs
+# 启动原生 Wayland foot 终端，指定 app-id 为 sshs-floating（附带终端英文模式自初始化 Hook）
+foot --app-id=sshs-floating --title="SSH Sessions" bash -c 'gdbus call --session --dest org.fcitx.Fcitx5 --object-path /rime --method org.fcitx.Fcitx.Rime1.SetAsciiMode true >/dev/null 2>&1; exec sshs'
 ```
 
 ```bash
 chmod +x ~/.local/bin/ssh-manager
 ```
+
+> [!TIP]
+> **输入法避坑说明**：普通打开 foot 时，会执行交互式 `/bin/bash` 读取 `~/.bashrc`，从而触发 Rime 英文自初始化 Hook。若直接运行 `foot ... sshs` 则会绕过 Shell 启动流程，导致弹窗继承宿主机当前的中文输入法状态。通过使用 `bash -c 'gdbus call ... SetAsciiMode true; exec sshs'`，能确保窗口在渲染完成前直接将 Rime 重置为纯英文状态，实现与原生 foot 完全一致的纯英文输入体验。
 
 ---
 
@@ -133,6 +136,7 @@ chmod +x ~/.local/bin/ssh-manager
 
 -- SSH 会话管理器 (sshs) 居中浮动窗口
 o.window("sshs-floating", {
+  tag = "+terminal",  -- 声明为终端，确保 Omarchy 通用复制 (Super+C/V) 适配终端键位 (Ctrl+Insert / Shift+Insert)
   float = true,
   center = true,
   size = { 960, 600 },
@@ -140,7 +144,7 @@ o.window("sshs-floating", {
 ```
 
 > [!NOTE]
-> 在 Omarchy 的 Lua 语法中，`o.window("app_id", { ... })` 会自动映射至底层 Hyprland 的 `windowrulev2`。设置尺寸 `960x600` 并居中，能带来媲美 macOS Raycast / Alfred 的丝滑聚焦质感。
+> 在 Omarchy 的 Lua 语法中，`o.window("app_id", { ... })` 会自动映射至底层 Hyprland 的 `windowrulev2`。添加 `tag = "+terminal"` 能够让 Omarchy 的 Universal Copy 识别该浮动窗口为终端（避免误发 `Ctrl+C` 中断信号）；设置尺寸 `960x600` 并居中，能带来媲美 macOS Raycast / Alfred 的丝滑聚焦质感。
 
 ---
 

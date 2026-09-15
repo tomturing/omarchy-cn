@@ -44,8 +44,9 @@ omarchy-cn/
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
 │   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md
 │   │   └── README.md
-│   └── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑
+│   └── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑、Remmina RDP
 │       ├── Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md
+│       ├── Remmina与FreeRDP远程Windows桌面无响应排查与调优（NLA认证假死、krb5.conf超时根治与自适应分辨率实录）.md
 │       └── README.md
 ├── skills/                                        # Agent Skill 规范目录 (anthropics/skills)
 │   ├── omarchy-chinese-environment/               # 输入法与本地化全链路诊断技能
@@ -102,6 +103,7 @@ omarchy-cn/
     ├── enable-docker-bypass.sh                    # 宿主机网络隔离脚本模板
     ├── optimize_windows_vm.ps1                    # 虚拟机内部一键精简脚本模板
     ├── fix-cliprdr-segfault.patch                 # FreeRDP 剪贴板段错误官方单行补丁
+    ├── krb5.conf                                  # 根除 RDP NLA 认证超时的 Kerberos 优化模板
     ├── ssh-manager                                # SSH Spotlight 快速启动脚本
     ├── hypr_ssh_windowrules.lua                   # SSH 浮动与 WindTerm 窗口规则模板
     ├── hypr_ssh_bindings.lua                      # Super+Shift+Enter 解绑与绑定模板
@@ -171,6 +173,16 @@ omarchy-cn/
     * 提供 `~/.bashrc` 细粒度环境检测补丁，在保障其他原生终端功能的同时彻底根治 WindTerm 乱码；
     * 配置 Hyprland 浮动与工作区隔离规则，规避 XWayland 多窗格平铺挤压；
     * 解决 XWayland 下 Qt5 下拉弹窗指针抓取（Pointer Grab）失效导致鼠标移入失焦/点击穿透，提供直接编辑 `user.sessions` 与 `session.config` 修改图标（`session.icon: session::cmd`）的优雅方案。
+* [**Remmina与FreeRDP远程Windows桌面无响应排查与调优（NLA认证假死、krb5.conf超时根治与自适应分辨率实录）**](./docs/06-远程连接与运维工具/Remmina与FreeRDP远程Windows桌面无响应排查与调优（NLA认证假死、krb5.conf超时根治与自适应分辨率实录）.md)
+  * **NLA 认证无限转圈假死溯源**：
+    * 剖析 Windows 现代网络级别身份验证（NLA/CredSSP）与 FreeRDP SSPI Negotiate 模块的握手逻辑；
+    * 揭示 Arch Linux 基础包 `/etc/krb5.conf` 预置 `default_realm = ATHENA.MIT.EDU` 导致的 DNS 与 KDC 连续同步网络超时风暴（每次耗时 60~80+ 秒挂起连接线程）；
+    * 优化 Kerberos 配置（禁用默认域、关闭 DNS 自动解析），使 RDP 握手响应耗时从 60 秒死等直降至 **0.26 秒**；
+  * **快速连接交互陷阱**：阐述顶栏直连缺失凭据与 Wayland/Hyprland 弹窗异常机制，提供标准持久化 Profile 建立与自签名证书忽略方案；
+  * **自适应分辨率与黑边彻底消除**：
+    * 阐明 RDP 虚拟视口由客户端主导协商、Windows 服务端无法自主修改分辨率的技术原理；
+    * 运用 Remmina 侧边栏“动态自适应分辨率”图标（左侧第 7 个）与 Profile 固化，实现任意拖动窗口无级平滑缩放与原生高清无黑边渲染；
+    * 提供原生 `xfreerdp3` GPU 硬解加速（`/gfx:AVC444` + `/dynamic-resolution`）命令行极速直连指令。
 
 ---
 

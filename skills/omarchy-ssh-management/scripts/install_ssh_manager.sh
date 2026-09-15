@@ -25,8 +25,8 @@ mkdir -p "$HOME/.local/bin"
 SSH_MGR="$HOME/.local/bin/ssh-manager"
 cat << 'MGR_EOF' > "$SSH_MGR"
 #!/bin/bash
-# 启动原生 Wayland foot 终端作为 Spotlight 居中弹窗，执行 sshs 会话管理器
-foot --app-id=sshs-floating --title="SSH Sessions" sshs
+# 启动原生 Wayland foot 终端作为 Spotlight 居中弹窗，执行 sshs 会话管理器（附带终端英文模式自初始化 Hook）
+foot --app-id=sshs-floating --title="SSH Sessions" bash -c 'gdbus call --session --dest org.fcitx.Fcitx5 --object-path /rime --method org.fcitx.Fcitx.Rime1.SetAsciiMode true >/dev/null 2>&1; exec sshs'
 MGR_EOF
 chmod +x "$SSH_MGR"
 echo -e " [${GREEN}OK${NC}] 已部署启动脚本至 $SSH_MGR"
@@ -40,6 +40,7 @@ if [ -f "$RULES_FILE" ]; then
 
 -- SSH 会话管理器 (sshs) Spotlight 居中浮动窗口规则
 o.window("sshs-floating", {
+  tag = "+terminal",
   float = true,
   center = true,
   size = { 960, 600 },

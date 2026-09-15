@@ -2,6 +2,7 @@
 
 -- 1. SSH 会话管理器 (sshs) Spotlight 居中浮动窗口规则
 o.window("sshs-floating", {
+  tag = "+terminal",
   float = true,
   center = true,
   size = { 960, 600 },

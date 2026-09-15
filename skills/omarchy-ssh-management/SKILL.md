@@ -52,7 +52,7 @@ bash <skill_dir>/scripts/check_ssh_env.sh
 2. **Create Runner Script (`~/.local/bin/ssh-manager`)**:
    ```bash
    #!/bin/bash
-   foot --app-id=sshs-floating --title="SSH Sessions" sshs
+   foot --app-id=sshs-floating --title="SSH Sessions" bash -c 'gdbus call --session --dest org.fcitx.Fcitx5 --object-path /rime --method org.fcitx.Fcitx.Rime1.SetAsciiMode true >/dev/null 2>&1; exec sshs'
    ```
    ```bash
    chmod +x ~/.local/bin/ssh-manager
@@ -60,6 +60,7 @@ bash <skill_dir>/scripts/check_ssh_env.sh
 3. **Configure Hyprland Floating Window Rule** in `~/.config/hypr/windowrules.lua`:
    ```lua
    o.window("sshs-floating", {
+     tag = "+terminal",
      float = true,
      center = true,
      size = { 960, 600 },
