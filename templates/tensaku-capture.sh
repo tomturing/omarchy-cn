@@ -6,7 +6,7 @@
 # 3. 按 F 键截取整个屏幕
 # 4. 按 S 键进入滚动长截图
 # 5. 选定后弹出标注界面（矩形、箭头、文字、马赛克、画笔）
-# 6. 回车 (Enter) 自动复制到剪贴板并存档至图片目录
+# 6. 回车 (Enter) 或点击复制按钮后，自动复制到剪贴板并存档，同时自动退出关闭截图窗口 (--early-exit)
 
 user_dirs="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
 [[ -f $user_dirs ]] && source "$user_dirs"
@@ -18,4 +18,5 @@ exec tensaku --capture \
   --actions-on-enter save-to-clipboard \
   --save-after-copy \
   --copy-command wl-copy \
+  --early-exit \
   "$@"

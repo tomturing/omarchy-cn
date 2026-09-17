@@ -14,7 +14,7 @@ This skill provides an automated, standardized procedure for diagnosing, configu
 Activate this skill whenever a user on Omarchy / Arch Linux:
 * **Asks for shortcut recommendations & Hyprland key configuration**: Inquiring about common, high-frequency productivity shortcuts (app launcher, scratchpad, lock screen, workspace navigation).
 * **Encounters shortcut conflicts or double triggers**: New shortcuts triggering both default actions and user commands (due to missing `hl.unbind`).
-* **Wants F1 one-key screenshot with modern annotation**: Replacing primitive grim/slurp/satty with WeChat/Snipaste-grade workflow (Space window snapping, rectangular/arrow/text annotation, mosaic/blur, S scroll capture, Enter auto-copy).
+* **Wants F1 one-key screenshot with modern annotation**: Replacing primitive grim/slurp/satty with WeChat/Snipaste-grade workflow (Space window snapping, rectangular/arrow/text annotation, mosaic/blur, S scroll capture, Enter/copy auto-exit window without manual close).
 * **Wants topbar center real-time network speed display**: Adding upload/download speed indicators to Omarchy's Quickshell top bar without high CPU usage or UI stutter.
 * **Experiences Quickshell layout breaks**: Disappearing widgets, duplicate widgets, or topbar layout parse errors after editing `~/.config/omarchy/shell.json`.
 
@@ -32,7 +32,8 @@ bash <skill_dir>/scripts/check_desktop_tweaks.sh
 | Check Item | Target Expected State | Failure Root Cause |
 | :--- | :--- | :--- |
 | **`tensaku` Binary** | Installed (`extra/tensaku`) | Not installed via pacman. |
-| **Capture Wrapper** | `~/.local/bin/tensaku-capture` executable | Wrapper script missing or missing execution permissions. |
+| **Capture Wrapper** | `~/.local/bin/tensaku-capture` executable with `--early-exit` | Wrapper script missing, non-executable, or missing auto-exit flag. |
+| **Tensaku Config** | `~/.config/tensaku/config.toml` contains `early-exit = true` | Tensaku window stays open after copy action. |
 | **F1 Keybinding** | `hl.unbind("F1")` + `o.bind("F1", ...)` in `~/.config/hypr/local.lua` | Missing unbind causing default help/guide conflict or unassigned. |
 | **App Shortcuts** | `SUPER + A` (IDE), `SUPER + B` (Browser) in `bindings.lua` | Application shortcut mappings not configured. |
 | **Netspeed Plugin** | `~/.config/omarchy/plugins/local.netspeed/` complete | Missing `manifest.json`, `netspeed.sh`, or `NetSpeed.qml`. |
@@ -64,19 +65,32 @@ bash <skill_dir>/scripts/setup_shortcuts_and_f1.sh
    ```
 
 2. **Tensaku Capture Wrapper (`~/.local/bin/tensaku-capture`)**:
-   Ensures auto-copying to clipboard and saving to `~/Pictures/Screenshots/` while playing shutter sound:
+   Enables interactive capture, auto-saving to picture directory, copying to clipboard via `wl-copy`, and auto-closing the window immediately on copy/save (`--early-exit`):
    ```bash
-   #!/usr/bin/env bash
-   set -euo pipefail
-   SAVE_DIR="$HOME/Pictures/Screenshots"
-   mkdir -p "$SAVE_DIR"
-   FILENAME="Screenshot_$(date +'%Y%m%d_%H%M%S').png"
-   TARGET_FILE="$SAVE_DIR/$FILENAME"
+   #!/bin/bash
+   user_dirs="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
+   [[ -f $user_dirs ]] && source "$user_dirs"
+   dir="${OMARCHY_SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}}"
+   mkdir -p "$dir"
 
-   tensaku --output "$TARGET_FILE" --clipboard
+   exec tensaku --capture \
+     --output-filename "$dir/tensaku-$(date +%Y-%m-%d_%H-%M-%S).png" \
+     --actions-on-enter save-to-clipboard \
+     --save-after-copy \
+     --copy-command wl-copy \
+     --early-exit \
+     "$@"
    ```
 
-3. **Reload Hyprland Config**:
+3. **Tensaku Global Configuration (`~/.config/tensaku/config.toml`)**:
+   Ensures auto-exit on copy across all entry points:
+   ```toml
+   [general]
+   annotation-size-factor = 2.0
+   early-exit = true
+   ```
+
+4. **Reload Hyprland Config**:
    ```bash
    hyprctl reload
    ```

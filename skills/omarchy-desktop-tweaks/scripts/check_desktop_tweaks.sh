@@ -18,11 +18,15 @@ else
     echo -e "${RED}[FAIL] 未找到 tensaku 程序！请运行 sudo pacman -S tensaku${NC}"
 fi
 
-# 2. 检查 ~/.local/bin/tensaku-capture
-echo -n "[2/7] 检查 F1 截图包装器 (~/.local/bin/tensaku-capture)... "
+# 2. 检查 ~/.local/bin/tensaku-capture 与自动退出配置
+echo -n "[2/7] 检查 F1 截图包装器与自动退出配置... "
 CAPTURE_SCRIPT="$HOME/.local/bin/tensaku-capture"
 if [ -x "$CAPTURE_SCRIPT" ]; then
-    echo -e "${GREEN}[PASS] 包装脚本存在且具备执行权限${NC}"
+    if grep -q "early-exit" "$CAPTURE_SCRIPT" || grep -q "early-exit" "$HOME/.config/tensaku/config.toml" 2>/dev/null; then
+        echo -e "${GREEN}[PASS] 包装脚本存在且已启用复制后自动退出 (--early-exit)${NC}"
+    else
+        echo -e "${YELLOW}[WARN] 包装脚本存在但未开启 early-exit 自动退出${NC}"
+    fi
 else
     echo -e "${RED}[FAIL] 缺失 $CAPTURE_SCRIPT 或无执行权限${NC}"
 fi

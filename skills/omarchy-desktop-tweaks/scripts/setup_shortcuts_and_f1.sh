@@ -7,12 +7,28 @@ TEMPLATES_DIR="$(cd "$SCRIPT_DIR/../../../templates" && pwd)"
 
 echo "=== 开始配置 Omarchy 高频快捷键与 F1 截图标注 ==="
 
-# 1. 部署 Tensaku 批注截图执行脚本
-echo "-> [1/3] 部署 ~/.local/bin/tensaku-capture ..."
+# 1. 部署 Tensaku 批注截图执行脚本与配置
+echo "-> [1/3] 部署 ~/.local/bin/tensaku-capture 与 Tensaku 配置 ..."
 mkdir -p "$HOME/.local/bin"
 cp "$TEMPLATES_DIR/tensaku-capture.sh" "$HOME/.local/bin/tensaku-capture"
 chmod +x "$HOME/.local/bin/tensaku-capture"
-echo "   [OK] tensaku-capture 部署完成"
+
+TENSAKU_CONF="$HOME/.config/tensaku/config.toml"
+mkdir -p "$(dirname "$TENSAKU_CONF")"
+if [ ! -f "$TENSAKU_CONF" ]; then
+    cat > "$TENSAKU_CONF" << 'EOF'
+[general]
+annotation-size-factor = 2.0
+early-exit = true
+EOF
+elif ! grep -q "early-exit" "$TENSAKU_CONF"; then
+    if grep -q "\[general\]" "$TENSAKU_CONF"; then
+        sed -i '/\[general\]/a early-exit = true' "$TENSAKU_CONF"
+    else
+        echo -e "\n[general]\nearly-exit = true" >> "$TENSAKU_CONF"
+    fi
+fi
+echo "   [OK] tensaku-capture 与配置部署完成（已启用复制后自动退出）"
 
 # 2. 写入 ~/.config/hypr/local.lua 按键绑定
 echo "-> [2/3] 配置 ~/.config/hypr/local.lua 快捷键绑定 ..."
