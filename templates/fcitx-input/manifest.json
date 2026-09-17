@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "local.fcitx-input",
+  "name": "Fcitx input method",
+  "version": "1.0.0",
+  "author": "user",
+  "description": "Current fcitx5 input method (中/EN), click toggles",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "FcitxInput.qml"
+  },
+  "barWidget": {
+    "displayName": "Fcitx input",
+    "description": "Current fcitx5 input method, click toggles",
+    "category": "Input",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}

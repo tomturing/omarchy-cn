@@ -93,10 +93,15 @@ omarchy-cn/
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
     ├── tensaku-capture.sh                         # Tensaku F1 智能截图标注包装脚本
     ├── hypr_shortcuts_snippet.lua                 # Hyprland 常用快捷键与 F1 绑定模板
-    ├── netspeed/                                  # Quickshell 顶栏网速组件模板
+    ├── netspeed/                                  # Quickshell 顶栏网速组件模板（单例锁+内存文件）
     │   ├── manifest.json
     │   ├── netspeed.sh
     │   └── NetSpeed.qml
+    ├── fcitx-input/                               # Quickshell 输入法状态挂件模板（防并发重入）
+    │   ├── manifest.json
+    │   └── FcitxInput.qml
+    ├── bashrc_restart_helpers.sh                  # restart-<target> 标准自愈命令库模板
+    ├── deep_clean_vm.bat                          # Windows VM 纯 ASCII 自动提权深度降噪与 Z 盘修复脚本
     ├── voxtype/                                   # Voxtype 语音识别配置模板
     │   └── config.toml
     ├── docker-bypass-clash.service                # 宿主机网络隔离 systemd 模板
@@ -137,6 +142,10 @@ omarchy-cn/
   * **RTX 2060 6GB 显存兼顾策略**：`voxtype-vulkan` 硬件加速将识别延迟从 CPU 的 6 秒压缩至 850 毫秒，且显存仅占 466MB，与本地大模型（`llama-server`）稳定共存。
 
 ### 2. 桌面环境与终端显示 (`docs/04-桌面环境与终端显示`)
+* [**Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）**](./docs/04-桌面环境与终端显示/Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）.md)
+  * **菜单假死与 `futex_do_wait` 根因定位**：深度还原 QtWayland 与 LayerShell 独占键盘焦点销毁并发 `configreloaded` 事件产生的线程死锁机理；
+  * **`restart-<target>` 规范化命令库**：在 `~/.bashrc` 中建立遵循 Unix 标准的中划线命令（`restart-shell` / `restart-clip`），享受 Tab 键秒级补全；
+  * **双屏环境插件防孤儿架构重构**：`local.netspeed` 引入 `flock -n` 单例文件锁、`pdeathsig TERM` 生命周期绑定以及 `/dev/shm` 内存文件流转，多显示器零额外 CPU 负载；优化 `local.fcitx-input` 并发重入锁与防抖降频。
 * [**Omarchy顶部栏居中实时网速显示配置指南（Quickshell组件开发、流量无损采集与一键部署脚本）**](./docs/04-桌面环境与终端显示/Omarchy顶部栏居中实时网速显示配置指南（Quickshell组件开发、流量无损采集与一键部署脚本）.md)
   * **Quickshell 现代组件架构**：阐明 Omarchy 抛弃传统 Waybar、全面拥抱 QtQuick/QML Quickshell 的技术演进；
   * **`/proc/net/dev` 极轻量流式采集器**：0% CPU 占用无损差值计算，自动过滤虚拟接口与 Docker 网桥，精准锚定主物理网卡；
@@ -145,15 +154,14 @@ omarchy-cn/
 
 ### 3. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
 * [**Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md)
+  * **宿主机硬件配额调优（根治 Swap 颠簸）**：针对 4 核 16G 宿主机，将虚拟机下调为 4 核 + 6GB 黄金配比，宿主机 Swap 占用从 3.1GB 归零（`0B`），可用内存翻倍（2.2G $\to$ 4.4G）；
+  * **共享驱动器 `Z:` 盘红叉根因与自愈**：剖析公共 DNS 无法解析私有域名 `host.lan` 机理，提供全自动 hosts 注入与直连方案；
+  * **纯 ASCII 批处理深度降噪脚本（`deep_clean_vm.bat`）**：避开 Windows `cmd.exe` 解析 UTF-8 多字节中文语法错位的经典大坑，自带 UAC 自动提权，一键禁用 `SysMain`、`Windows Search`、`DiagTrack`、小组件与休眠；
   * **下载加速与 ISO 注入**：剖析 Docker 拉取慢与 5GB Windows 11 ISO 在线下载卡顿根因，提供本地一键注入直接跳过下载的方案；
   * **网络隔离与 Clash 防互扰**：
     * 深度解决 Clash TUN 模式 Fake-IP（`198.18.x.x`）导致深信服 VPN（EasyConnect / aTrust）报“网络连接错误”的问题；
     * 宿主机注入内核策略路由 `pref 8990`，强制将 Docker 虚拟机流量直通物理网卡路由表（main 表），并配置 systemd 开机持久化；
     * 宿主机容器编排层（`docker-compose.yml` / `daemon.json`）直接解耦纯净公网 DNS（`223.5.5.5` / `119.29.29.29`），从源头彻底根除 Fake-IP 冲突导致的外网超时假死（`ERR_TIMED_OUT`、微软语言包 `0x80240438`），实现虚拟机启动即用、无需在 Windows 敲命令；校正北京时间 UTC+8 消除企业微信 15 小时时差；
-  * **Windows 11 极致性能精简**：
-    * 100% 可逆、纯非破坏性优化理念；
-    * 一键 PowerShell 脚本彻底禁用高 I/O 争抢服务（`SysMain`、`WSearch`、`DiagTrack`），切换视觉特效为性能优先，关闭小组件与休眠；
-    * 空闲 CPU 从 50%+ 降至 0%~2%，静态内存降至 1.8GB，FreeRDP 操作极度跟手；
   * **Btrfs 秒级 CoW 快照备份**：利用写时复制特性，0.1 秒完成虚拟磁盘快照备份与还原，零额外物理磁盘空间占用。
 * [**Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）**](./docs/05-Windows容器虚拟机/Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md)
   * **假死排查**：窗口瞬间消失并非虚拟机崩溃，后台 QEMU 进程依然存活运行；

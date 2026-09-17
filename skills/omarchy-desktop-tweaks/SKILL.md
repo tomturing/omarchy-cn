@@ -114,13 +114,59 @@ bash <skill_dir>/scripts/setup_topbar_netspeed.sh
 
 ---
 
+### Recipe 3: Deploy Standardized `restart-<target>` Recovery Commands
+
+When the user encounters desktop freezes, `Super+Space` menu hangs, or clipboard pipe issues, deploy the standardized recovery commands into `~/.bashrc`:
+
+```bash
+cat << 'EOF' >> ~/.bashrc
+
+# ==============================================================================
+# 快捷恢复与重启命令规范: restart-<component>
+# 规范说明: 统一采用 kebab-case (中划线)，输入 "restart-" + Tab 即可自动补全所有可用恢复命令
+# ==============================================================================
+
+# 1. 桌面 Shell / 菜单恢复 (针对 Omarchy 菜单、顶栏、Quickshell 死锁卡顿)
+restart-shell() {
+    echo "Restarting Quickshell / Omarchy shell..."
+    killall -9 quickshell 2>/dev/null
+    omarchy-restart-shell
+}
+alias restart-quickshell='restart-shell'
+alias restartquickshell='restart-shell'
+alias rshell='restart-shell'
+
+# 2. 剪贴板管道重置 (针对跨机剪贴板假死/挂起)
+restart-clip() {
+    pkill -9 -f "capture.sh text" 2>/dev/null
+    echo "Clipboard pipeline reset successfully."
+}
+alias restart-clipboard='restart-clip'
+alias fix-clip='restart-clip'
+EOF
+```
+
+---
+
+### Recipe 4: Harden Multi-Monitor Custom Plugins Against Deadlocks & Orphan Leaks
+
+In a dual-monitor setup (e.g. `eDP-1` and `HDMI-A-1`), Quickshell instantiates bar widgets once per screen. Custom plugins must follow these 3 strict rules:
+1. **Singleton Daemon Locking**: Use `exec 200>"$LOCK_FILE"` and `flock -n 200 || exit 0` in background scripts so only 1 sampler runs globally;
+2. **Orphan Prevention**: Start daemons with `setpriv --pdeathsig TERM` and check `kill -0 "$PPID"` in loops so scripts die when Quickshell exits;
+3. **Decouple Via Memory File**: Write sampled JSON atomically to `$XDG_RUNTIME_DIR/xxx.json` (`tmpfs`), and let QML consume via `Quickshell.Io.FileView` instead of streaming high-frequency stdout into the Qt GUI main thread.
+
+---
+
 ## 4. Troubleshooting & Edge Cases
 
+* **`Super + Space` Omarchy Menu Does Not Open / Hangs**:
+  Run `omarchy menu ping`. If it returns `omarchy-shell is not responding`, Quickshell is locked in `futex_do_wait`. Run `restart-shell` in terminal to kill and cleanly respawn the shell in 1-2 seconds.
 * **F1 does not trigger screenshot**:
   Check if another process locked F1 or if `hl.unbind` was called. Test manually by running `~/.local/bin/tensaku-capture` in a terminal.
 * **Tensaku window doesn't appear on screen**:
   Ensure Wayland compositing permissions are healthy and `grim`/`slurp` dependencies are present.
 * **Topbar net speed shows `0.0 B/s` while downloading**:
-  Check if physical network interface was excluded in `netspeed.sh`. Run `bash ~/.config/omarchy/plugins/local.netspeed/netspeed.sh` in terminal to inspect raw JSON output.
+  Check if physical network interface was excluded in `netspeed.sh`. Run `cat $XDG_RUNTIME_DIR/omarchy-netspeed.json` to inspect live data.
 * **Quickshell topbar crashes or restarts continuously**:
-  Inspect logs via `journalctl --user -u quickshell -b -n 50` or launch `quickshell` in terminal to see syntax errors in `NetSpeed.qml`.
+  Inspect logs via `journalctl --user -b -n 50 | grep -i quickshell` or launch `quickshell` in terminal to see syntax errors in QML components.
+

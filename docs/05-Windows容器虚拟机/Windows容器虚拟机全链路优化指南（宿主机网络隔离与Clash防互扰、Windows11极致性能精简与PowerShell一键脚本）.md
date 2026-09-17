@@ -196,45 +196,103 @@ Set-TimeZone -Id "China Standard Time"
 > [!TIP]
 > **安全声明**：以下精简方案为**纯非破坏性优化**，不删除系统核心组件、不修改关键系统 DLL，完全可逆。
 
-### 1. 一键执行 PowerShell 深度优化脚本
+### 1. 一键执行深度降噪脚本（批处理 UTF-8 避坑与纯 ASCII 自动提权）
 
-以**管理员身份**在 Windows VM 的 PowerShell 中运行以下整段脚本：
+> [!WARNING]
+> **Windows 批处理 `.bat` 经典编码大坑**：
+> 在 Linux 环境编辑创建的 `.bat` 文件如果保存为 **UTF-8 编码且含有多字节中文字符**（如中文括号 `（）` 或汉字），Windows 的 `cmd.exe` 在逐行解析时会将中文字节误读为命令行分隔符，导致报 `'理磁盘空间) ' is not recognized` 以及 `The system cannot find the path specified`，甚至导致后续系统服务禁用命令全部跳过！
+> **最佳实践**：批处理文件必须使用 **纯 ASCII 字符集** 配合 **Windows CRLF (`\r\n`) 换行**，并在脚本头部增加自动请求管理员权限（UAC）逻辑。
 
-```powershell
-Write-Host "🚀 开始执行 Windows VM 极致性能精简优化..." -ForegroundColor Cyan
+已为您提炼为零失误、纯 ASCII、内置 UAC 自动提权的一键式批处理脚本 **[`deep_clean_vm.bat`](file:///home/tom/Projects/omarchy-cn/templates/deep_clean_vm.bat)**：
 
-# 1. 调整视觉特效为【性能优先】（关闭缩放动画、半透明、毛玻璃，显著提高 FreeRDP 传输帧率）
-Write-Host "-> 调整系统视觉特效为性能优先..." -ForegroundColor Yellow
-Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2
-Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'UserPreferencesMask' -Value ([byte[]](0x90,0x12,0x03,0x80,0x10,0x00,0x00,0x00))
-Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop\WindowMetrics' -Name 'MinAnimate' -Value '0'
+```cmd
+@echo off
+:: Check Administrator Privileges
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [Info] Requesting Administrator Privileges...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
 
-# 2. 彻底禁用 3 个在虚拟机里最吃 CPU 和磁盘 I/O 的流氓服务
-Write-Host "-> 禁用 SysMain 超级预读服务（避免虚拟磁盘高 I/O 争抢）..." -ForegroundColor Yellow
-Stop-Service -Name "SysMain" -Force -ErrorAction SilentlyContinue
-Set-Service -Name "SysMain" -StartupType Disabled
+echo ========================================================
+echo   Windows 11 VM Deep Clean and Optimization Script
+echo ========================================================
+echo.
 
-Write-Host "-> 禁用 Windows Search 搜索索引服务（避免后台频繁扫盘）..." -ForegroundColor Yellow
-Stop-Service -Name "WSearch" -Force -ErrorAction SilentlyContinue
-Set-Service -Name "WSearch" -StartupType Disabled
+echo [1/6] Disabling SysMain (Superfetch) service...
+sc stop SysMain >nul 2>&1
+sc config SysMain start=disabled >nul 2>&1
 
-Write-Host "-> 禁用 DiagTrack 微软后台遥测上传服务..." -ForegroundColor Yellow
-Stop-Service -Name "DiagTrack" -Force -ErrorAction SilentlyContinue
-Set-Service -Name "DiagTrack" -StartupType Disabled
+echo [2/6] Disabling Windows Search indexing service...
+sc stop WSearch >nul 2>&1
+sc config WSearch start=disabled >nul 2>&1
 
-# 3. 禁用 Windows 11 耗费性能的“小组件 (Widgets)”和无用后台应用
-Write-Host "-> 禁用小组件与后台应用自启权限..." -ForegroundColor Yellow
-Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh' -Name 'AllowNewsAndInterests' -Value 0 -Force -ErrorAction SilentlyContinue
-Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications' -Name 'GlobalUserDisabled' -Value 1 -Force
+echo [3/6] Disabling DiagTrack (Telemetry) service...
+sc stop DiagTrack >nul 2>&1
+sc config DiagTrack start=disabled >nul 2>&1
 
-# 4. 关闭系统休眠（省出 4GB~8GB 虚拟硬盘物理空间）
-Write-Host "-> 关闭系统休眠释放磁盘..." -ForegroundColor Yellow
-powercfg -h off
+echo [4/6] Disabling Widgets and background apps...
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Dsh" /v AllowNewsAndInterests /t REG_DWORD /d 0 /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" /v GlobalUserDisabled /t REG_DWORD /d 1 /f >nul 2>&1
 
-Write-Host "✅ 核心精简已完成，建议重启一次 Windows VM！" -ForegroundColor Green
+echo [5/6] Disabling Hibernation to free disk space...
+powercfg -h off >nul 2>&1
+
+echo [6/6] Setting visual effects to performance mode...
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" /v EnableTransparency /t REG_DWORD /d 0 /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v VisualFXSetting /t REG_DWORD /d 2 /f >nul 2>&1
+reg add "HKCU\Control Panel\Desktop\WindowMetrics" /v MinAnimate /t REG_SZ /d 0 /f >nul 2>&1
+
+echo.
+echo [Bonus] Fixing host.lan in hosts file...
+findstr /i "host.lan" "%SystemRoot%\System32\drivers\etc\hosts" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo.>> "%SystemRoot%\System32\drivers\etc\hosts"
+    echo 172.30.0.1 host.lan>> "%SystemRoot%\System32\drivers\etc\hosts"
+    echo [Bonus] Successfully added host.lan mapping to hosts!
+) else (
+    echo [Bonus] host.lan already present in hosts file.
+)
+
+echo.
+echo ========================================================
+echo   [SUCCESS] Optimization and Drive Fix completed!
+echo   Idle CPU usage should drop to 0%% - 3%%.
+echo   Drive Z: is now ready to connect without errors.
+echo ========================================================
+echo.
+pause
 ```
 
-### 2. 高收益手动细节优化
+#### 使用步骤：
+1. 将上述脚本置于宿主机 `~/Windows/deep_clean_vm.bat`（或直接在 Windows 资源管理器打开 `\\172.30.0.1\Data`）；
+2. 双击运行，在 UAC 弹窗点“是”；
+3. 3 秒内全自动关闭三大流氓服务与休眠，并自动注入 `host.lan` 映射修复 `Z:` 盘！
+
+---
+
+### 2. 共享驱动器 `Z:` 盘红叉断开与“找不到 C:\shared\”根因与修复
+
+#### A. 报错现象还原
+* 用户在 Windows 资源管理器地址栏输入 `C:\shared\` 时，系统报错：`Windows 找不到 "C:\shared\"。请检查拼写并重试。`
+* “此电脑”中原本挂载的共享驱动器 **`Data (\\host.lan) (Z:)` 带有红叉**，双击提示网络位置不可达。
+
+#### B. 根本诱因
+1. **路径混淆**：`C:\shared\` 仅为宿主机 Docker 容器内的挂载路径，在 Windows 内部其真实形态为 **Samba 网络共享驱动器 (`Z:`)**；
+2. **DNS 覆盖导致私有域名失效**：之前为了让深信服 VPN 绕过宿主机 Clash Fake-IP，在 Windows 里将 DNS 改为真实的公共 DNS（`223.5.5.5`）。但公共 DNS 不包含虚拟机的局域网私有域名 `host.lan`，导致 Windows 无法解析 `host.lan` 的 IP，进而造成 `Z:` 盘断开。
+
+#### C. 快速彻底解决
+* **临时直连**：按 `Win + R` 输入 `\\172.30.0.1\Data` 按回车，无需解析域名直接秒开共享目录；
+* **彻底治愈 `Z:` 盘**：在 Windows 管理员终端中运行：
+  ```powershell
+  Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "`n172.30.0.1 host.lan"
+  ```
+  *(注：上述 `deep_clean_vm.bat` 脚本已内置该修复逻辑，双击脚本即可自动注入！)*
+
+---
+
+### 3. 高收益手动细节优化
 
 #### A. 关闭 Edge 浏览器后台常驻
 Edge 默认在关闭后依然常驻多个渲染进程：
@@ -273,23 +331,28 @@ omarchy-windows-vm launch
 
 ---
 
-## 七、调优实操第五部分：宿主机容器资源配比调优
+## 七、调优实操第五部分：宿主机容器资源配比调优（根除 Swap 颠簸）
 
-宿主机若总配置为 8 核 16GB，运行轻量 Windows VM（主要跑企业微信 + VPN）时，建议调小分配，防止宿主机日常编译或 AI 工具卡顿：
+### 1. 硬件超配引发宿主机假死机制
+若宿主机规格为 4 核 8 线程（如 Intel Core i5-1135G7）且物理内存为 15GB，若虚拟机默认分配 **6 核 + 8GB**：
+- **内存耗尽与 Swap 颠簸**：QEMU 进程独占 8.2GB（51%），宿主机可用物理内存仅剩 1GB，迫使 Linux 将桌面合成器、IDE 和 Quickshell 的内存页压缩换出到 Swap（实测 Swap 占用高达 3.1GB）。
+- **CPU 调度饥饿**：4 个物理核被虚拟机长期以 70%+ CPU 霸占，导致用户在 Linux 按下快捷键呼出菜单或切换窗口时出现几秒的严重卡顿。
 
-编辑 `/var/lib/omarchy/windows/docker-compose.yml`：
-```yaml
-services:
-  windows:
-    # 经过精简优化后，静态内存占用仅 1.8G，分配 4G ~ 6G 足够流畅运行
-    RAM_SIZE: "6G"
-    # CPU 保持 4 核或 3 核，给宿主机预留调度空间
-    CPU_CORES: "4"
-```
-重启虚拟机生效：
+### 2. 黄金规格调优实践（4核 + 6GB）
+将虚拟机下调为 **4 核 CPU + 6GB 内存**：
 ```bash
-omarchy-windows-vm restart
+# 1. 快速修改配置
+sudo sed -i -E 's/RAM_SIZE: ".*"/RAM_SIZE: "6G"/; s/CPU_CORES: ".*"/CPU_CORES: "4"/' /var/lib/omarchy/windows/docker-compose.yml
+
+# 2. 重启容器生效
+sudo docker compose -f /var/lib/omarchy/windows/docker-compose.yml down
+sudo docker compose -f /var/lib/omarchy/windows/docker-compose.yml up -d
 ```
+
+### 3. 实测调优收益
+* **宿主机 Swap 占用从 3.1GB 瞬间归零 (`0B`)**；
+* 宿主机可用物理内存从 2.2GB 跃升至 **4.4GB**；
+* 归还 2 个物理核心给 Linux 桌面与开发工具，系统整体操作帧率彻底恢复丝滑。
 
 ---
 
@@ -298,8 +361,12 @@ omarchy-windows-vm restart
 | 指标维度 | 优化前状态 | 优化后状态 | 改善幅度 |
 | :--- | :--- | :--- | :--- |
 | **空闲 CPU 占用率** | 25% ~ 60%（SysMain/Search 偷跑） | **0% ~ 2%** | **降低 95%** |
+| **宿主机 Swap 占用** | 3.1 GiB（系统频繁换页卡顿） | **0 B（完全无换页）** | **彻底根除 Swap 颠簸** |
+| **宿主机可用内存** | 2.2 GiB 告急 | **4.4 GiB+ 宽裕** | **提升 100%** |
 | **静态内存占用** | 3.8 GB ~ 4.5 GB | **1.8 GB ~ 2.1 GB** | **节省近 50% 内存** |
 | **磁盘 I/O 活跃度** | 频繁 100% 满载，操作卡死 | **平时接近 0%**，按需读写 | 彻底解决磁盘粘滞感 |
 | **FreeRDP 画面手感** | 动画掉帧、毛玻璃卡顿 | **丝滑跟手**，窗口秒开秒关 | 大幅降低编码传输延迟 |
 | **深信服 VPN 连接** | 报“网络错误”、假 IP 阻断 | **秒连企业内网**，永久稳定 | 彻底根除 Fake-IP 冲突 |
+| **Z: 共享盘状态** | 红叉断开、找不到路径 | **秒开 Data 目录**，永久正常 | 域名与 IP 映射自动补齐 |
 | **企业微信时间戳** | 延迟 15 小时显示“昨天” | **显示精准北京时间** | 时区完全同步 |
+

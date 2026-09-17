@@ -110,12 +110,16 @@ bash <skill_dir>/scripts/rebuild_freerdp_with_patch.sh
 
 ## 5. Windows 11 Extreme Performance Slimming Recipe
 
-Run the bundled PowerShell script inside the Windows VM (Administrator terminal):
+Run the bundled ASCII batch script with auto-elevation inside the Windows VM (`deep_clean_vm.bat`):
 
-```powershell
-# Directly run script or execute commands from:
-# <skill_dir>/scripts/optimize_windows_vm.ps1
+```cmd
+# Double click or run as Administrator:
+# ~/Windows/deep_clean_vm.bat (mapped to Z: or \\172.30.0.1\Data)
 ```
+
+> [!WARNING]
+> **Windows Batch UTF-8 Pitfall**:
+> Avoid saving `.bat` files with UTF-8 multi-byte Chinese characters. Windows `cmd.exe` misinterprets multi-byte bytes as syntax delimiters, skipping services or failing with syntax errors. Always use **Pure ASCII + CRLF line terminators**.
 
 ### What this script does (100% Reversible & Safe):
 1. **Visual Effects to Performance Mode**: Disables window zoom animations, smooth scrolling, and transparency (`MinAnimate=0`), dramatically improving FreeRDP encoding efficiency.
@@ -125,10 +129,38 @@ Run the bundled PowerShell script inside the Windows VM (Administrator terminal)
    * `DiagTrack`: Telemetry upload service.
 3. **Disables Widgets & Background Apps**: Turns off News/Interests and background app access.
 4. **Disables Hibernation (`powercfg -h off`)**: Frees 4GB~8GB of physical virtual disk space.
+5. **Auto-fixes `Z:` Drive `host.lan`**: Appends `172.30.0.1 host.lan` to `%SystemRoot%\System32\drivers\etc\hosts`.
 
 ---
 
-## 6. Btrfs Instant Zero-Cost Snapshot Backup
+## 6. Fix `Z:` Drive Disconnected (Red X) & "Cannot find C:\shared\"
+
+* **Symptom**: In Windows VM, user types `C:\shared\` and gets "Windows cannot find C:\shared\". `Data (\\host.lan) (Z:)` shows a red X.
+* **Root Cause**: `C:\shared\` is only a Linux container path; the Windows path is Samba share `Z:`. When Windows DNS is changed to public `223.5.5.5` to bypass Clash Fake-IP, public DNS cannot resolve the internal `host.lan` domain.
+* **Instant Fix**:
+  Run in Windows Administrator PowerShell:
+  ```powershell
+  Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "`n172.30.0.1 host.lan"
+  ```
+  Or directly browse `\\172.30.0.1\Data`.
+
+---
+
+## 7. Host Hardware Resource Sizing (Avoid Swap Thrashing)
+
+On a 4-core / 16GB host (e.g. Intel i5-1135G7):
+* **Default Pitfall**: Over-allocating 6 cores and 8GB RAM starves the Linux host, leaving ~1GB free RAM and forcing 3GB+ into compressed Swap (`/dev/zram0`). This causes Hyprland/Quickshell window and menu freezes.
+* **Golden Sizing (4 Cores + 6GB RAM)**:
+  ```bash
+  sudo sed -i -E 's/RAM_SIZE: ".*"/RAM_SIZE: "6G"/; s/CPU_CORES: ".*"/CPU_CORES: "4"/' /var/lib/omarchy/windows/docker-compose.yml
+  sudo docker compose -f /var/lib/omarchy/windows/docker-compose.yml down
+  sudo docker compose -f /var/lib/omarchy/windows/docker-compose.yml up -d
+  ```
+* **Result**: Host Swap usage drops to **0 B**, available RAM doubles (2.2GB -> 4.4GB+), and desktop stutters disappear.
+
+---
+
+## 8. Btrfs Instant Zero-Cost Snapshot Backup
 
 Take advantage of Omarchy's native Btrfs filesystem CoW (Copy-on-Write):
 
@@ -145,10 +177,11 @@ bash <skill_dir>/scripts/snapshot_vm_btrfs.sh status
 
 ---
 
-## 7. Pre-seeding Windows 11 ISO (Download Bypass)
+## 9. Pre-seeding Windows 11 ISO (Download Bypass)
 
 To skip the 5GB online download during container deployment:
 1. Pre-download `win11x64.iso` using IDM / aria2 externally.
 2. Copy into `/var/lib/omarchy/windows/mounts/users/1000/storage/win11x64.iso`.
 3. Set ownership `sudo chown tom:tom ...`.
 4. Launch container: `omarchy-windows-vm launch`.
+

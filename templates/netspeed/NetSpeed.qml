@@ -58,32 +58,48 @@ BarWidget {
            "(点击切换精简/详细显示)"
   }
 
-  Process {
-    id: speedProc
-    command: ["bash", "-c", "exec \"$HOME/.config/omarchy/plugins/local.netspeed/netspeed.sh\""]
-    running: true
-    stdout: SplitParser {
-      onRead: function(line) {
-        var str = String(line || "").trim()
-        if (!str || str.charAt(0) !== '{') return
-        try {
-          var data = JSON.parse(str)
-          root.rxRate = data.down
-          root.txRate = data.up
-          root.totalDown = data.total_down
-          root.totalUp = data.total_up
-          root.activeIface = data.iface
-          root.hasData = true
-        } catch (e) {}
-      }
-    }
+  function parseSpeedData(raw) {
+    var str = String(raw || "").trim()
+    if (!str || str.charAt(0) !== '{') return
+    try {
+      var data = JSON.parse(str)
+      root.rxRate = data.down
+      root.txRate = data.up
+      root.totalDown = data.total_down
+      root.totalUp = data.total_up
+      root.activeIface = data.iface
+      root.hasData = true
+    } catch (e) {}
   }
 
+  // 1. 通过内存共享文件 FileView 监听网速更新（无高频管道 IO，多屏幕安全共享）
+  FileView {
+    id: speedFile
+    path: Quickshell.env("XDG_RUNTIME_DIR") + "/omarchy-netspeed.json"
+    watchChanges: true
+    printErrors: false
+    onLoaded: root.parseSpeedData(text())
+    onFileChanged: reload()
+  }
+
+  // 2. 采样守护进程（通过 setpriv --pdeathsig TERM 绑定宿主生命周期，flock 确保单例）
+  Process {
+    id: speedDaemon
+    command: ["setpriv", "--pdeathsig", "TERM", "bash", "-c", "exec \"$HOME/.config/omarchy/plugins/local.netspeed/netspeed.sh\""]
+    running: true
+  }
+
+  // 3. 兜底心跳重试：若采集进程意外中断，定时拉起
   Timer {
-    interval: 2500
-    running: !speedProc.running
+    interval: 3000
+    running: !speedDaemon.running
     repeat: true
-    onTriggered: speedProc.running = true
+    onTriggered: speedDaemon.running = true
+  }
+
+  // 4. 组件销毁时主动释放资源
+  Component.onDestruction: {
+    speedDaemon.running = false
   }
 
   implicitWidth: button.implicitWidth
