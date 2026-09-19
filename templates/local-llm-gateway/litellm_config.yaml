@@ -57,7 +57,7 @@ model_list:
   # =========================================================
   - model_name: local-precise
     litellm_params:
-      model: openai/unsloth-Qwen3.8-27B-Q8_0
+      model: openai/unsloth/Qwen3.8-27B-GGUF
       api_base: http://172.28.24.22:8080/v1
       api_key: sk-unsloth-win22-masterkey
       max_input_tokens: 65536
@@ -68,7 +68,7 @@ model_list:
 
   - model_name: node2-qwen
     litellm_params:
-      model: openai/unsloth-Qwen3.8-27B-Q8_0
+      model: openai/unsloth/Qwen3.8-27B-GGUF
       api_base: http://172.28.24.22:8080/v1
       api_key: sk-unsloth-win22-masterkey
       drop_params: true
@@ -76,7 +76,7 @@ model_list:
 
   - model_name: qwen-q8
     litellm_params:
-      model: openai/unsloth-Qwen3.8-27B-Q8_0
+      model: openai/unsloth/Qwen3.8-27B-GGUF
       api_base: http://172.28.24.22:8080/v1
       api_key: sk-unsloth-win22-masterkey
       drop_params: true
@@ -125,7 +125,7 @@ model_list:
 
   - model_name: claude-3-5-sonnet-20241022
     litellm_params:
-      model: openai/unsloth-Qwen3.8-27B-Q8_0
+      model: openai/unsloth/Qwen3.8-27B-GGUF
       api_base: http://172.28.24.22:8080/v1
       api_key: sk-unsloth-win22-masterkey
       drop_params: true
@@ -191,7 +191,7 @@ model_list:
 
   - model_name: deepseek-v4-pro
     litellm_params:
-      model: openai/unsloth-Qwen3.8-27B-Q8_0
+      model: openai/unsloth/Qwen3.8-27B-GGUF
       api_base: http://172.28.24.22:8080/v1
       api_key: sk-unsloth-win22-masterkey
       drop_params: true
@@ -207,7 +207,7 @@ model_list:
 
   - model_name: deepseek-reasoner
     litellm_params:
-      model: openai/unsloth-Qwen3.8-27B-Q8_0
+      model: openai/unsloth/Qwen3.8-27B-GGUF
       api_base: http://172.28.24.22:8080/v1
       api_key: sk-unsloth-win22-masterkey
       drop_params: true
