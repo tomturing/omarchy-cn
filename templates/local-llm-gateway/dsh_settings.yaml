@@ -1,0 +1,35 @@
+# dsh Agent 统一本地大模型网关与上下文感知配置模板
+# 放置路径: ~/.dsh/settings.yaml
+
+agent-default-model:
+  provider: local-gateway
+  model: local-auto
+
+llm-deepseek:
+  baseURL: http://127.0.0.1:4000
+  apiKeyEnv: DEEPSEEK_API_KEY
+
+llm-pi-ai:
+  providers:
+    local-gateway:
+      displayName: Local Gateway (LiteLLM Cluster)
+      apiKeyEnv: DEEPSEEK_API_KEY
+      api: openai-completions
+      baseURL: http://127.0.0.1:4000/v1
+      models:
+        - id: local-auto
+          name: "Local Auto (Fast 8K -> Precise 64K -> Infinite 256K)"
+          # 关键防爆参数：设置 64K 安全水位，使 dsh 在 50K~55K 时主动启动 Compaction 会话压缩
+          contextWindow: 65536
+        - id: local-fast
+          name: "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 80 t/s)"
+          contextWindow: 32768
+        - id: local-precise
+          name: "Node 2: Windows 22 高精版 (Q8_0 无损精度)"
+          contextWindow: 65536
+        - id: local-infinite
+          name: "Node 3: Omarchy 23 满血长文本 (256K Context)"
+          contextWindow: 262144
+
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1

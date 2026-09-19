@@ -1,0 +1,21 @@
+[Unit]
+Description=Unsloth Studio LLM Service (Qwen3.8-27B-Q8_0)
+After=network.target
+
+# 注意：请将 User/Group 及路径中的 ai-runner 替换为您服务器上的实际运行用户名
+[Service]
+Type=simple
+User=ai-runner
+Group=ai-runner
+WorkingDirectory=/home/ai-runner
+ExecStart=/home/ai-runner/run_unsloth_studio.sh
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+Environment="HOME=/home/ai-runner"
+Environment="PATH=/home/ai-runner/.unsloth/studio/unsloth_studio/bin:/usr/local/cuda/bin:/usr/bin:/bin"
+StandardOutput=append:/home/ai-runner/unsloth_studio.log
+StandardError=append:/home/ai-runner/unsloth_studio.log
+
+[Install]
+WantedBy=multi-user.target

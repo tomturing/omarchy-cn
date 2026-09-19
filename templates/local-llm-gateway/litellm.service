@@ -1,0 +1,21 @@
+[Unit]
+Description=LiteLLM Unified Proxy & Observability Gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.config/litellm
+ExecStart=%h/.config/litellm/.venv/bin/litellm --config %h/.config/litellm/config.yaml --port 4000
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+Environment="PYTHONUNBUFFERED=1"
+Environment="DOCS_URL=/docs"
+# Langfuse 可观测性大屏配置 (执行 link-litellm.sh 自动注入)
+# Environment="LANGFUSE_PUBLIC_KEY=pk-lf-..."
+# Environment="LANGFUSE_SECRET_KEY=sk-lf-..."
+# Environment="LANGFUSE_HOST=http://localhost:3000"
+
+[Install]
+WantedBy=default.target

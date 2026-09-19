@@ -1,0 +1,29 @@
+# Secret & Environment files
+.env
+.env.*
+*.env
+*.secret
+*.key
+*.pem
+*.pfx
+*.cert
+*.crt
+
+# Local configurations & overrides
+*.local.*
+*.local.yaml
+*.local.yml
+*.local.json
+
+# Logs and runtime data
+*.log
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
