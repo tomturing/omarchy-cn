@@ -28,7 +28,7 @@ exec llama-server \
   --cache-type-k q4_0 \
   --cache-type-v q4_0 \
   --spec-type draft-mtp \
-  --spec-draft-n-max 2 \
+  --spec-draft-n-max 6 \
   -t 8 \
   -tb 14 \
   -b 2048 \

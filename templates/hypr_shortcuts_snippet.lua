@@ -1,9 +1,9 @@
 -- Omarchy 高频实用快捷键与 F1 截图标注配置片段
 -- 推荐置于 ~/.config/hypr/bindings.lua 或 ~/.config/hypr/local.lua
 
--- 1. F1 快速唤起 Tensaku 批注截图
+-- 1. F1 快速唤起 Tensaku 批注截图 (使用 HOME 环境变量动态获取路径)
 hl.unbind("F1")
-o.bind("F1", "Screenshot", "/home/tom/.local/bin/tensaku-capture")
+o.bind("F1", "Screenshot", (os.getenv("HOME") or "") .. "/.local/bin/tensaku-capture")
 
 -- 2. 常用开发与办公应用
 o.bind("SUPER + A", "Antigravity", { launch = "antigravity" })
