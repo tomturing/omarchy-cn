@@ -1,244 +1,251 @@
-# LiteLLM 统一网关核心配置（超融合三节点“快-精-长”智能分级集群）
-# 架构矩阵：
-#   - 节点 1 (Ubuntu 21):  主攻“快” (Q4_K_M + MTP 投机加速，TTFT 0.74s，50+ t/s)
-#   - 节点 2 (Windows 22): 主攻“精” (Q8_0 物理级无损浮点精度，复杂代码逻辑与数学推理)
-#   - 节点 3 (Omarchy 23): 主攻“长” (Q4_K_M + Q4 KV Cache，满血 256K 超长上下文)
-#   - 智能入口 local-auto: 依据上下文长度自动分级升级
-
-model_list:
-  # =========================================================
-  # 1. 极速响应入口 (Ubuntu 21) - 默认首选，主攻日常高频极速对话
-  # =========================================================
-  - model_name: local-auto
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      max_input_tokens: 32768
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-    model_info:
-      max_tokens: 32768
-
-  - model_name: local-fast
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: local-qwen
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: node1-qwen
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: qwen-fast
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  # =========================================================
-  # 2. 高精严谨思考入口 (Windows 22) - 承接深度代码架构设计与严谨数学
-  # =========================================================
-  - model_name: local-precise
-    litellm_params:
-      model: openai/unsloth/Qwen3.8-27B-GGUF
-      api_base: http://172.28.24.22:8080/v1
-      api_key: sk-unsloth-win22-masterkey
-      max_input_tokens: 65536
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-    model_info:
-      max_tokens: 65536
-
-  - model_name: node2-qwen
-    litellm_params:
-      model: openai/unsloth/Qwen3.8-27B-GGUF
-      api_base: http://172.28.24.22:8080/v1
-      api_key: sk-unsloth-win22-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: qwen-q8
-    litellm_params:
-      model: openai/unsloth/Qwen3.8-27B-GGUF
-      api_base: http://172.28.24.22:8080/v1
-      api_key: sk-unsloth-win22-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  # =========================================================
-  # 3. 256K 满血超长上下文专机 (Omarchy 23) - 承接万行仓库与超大日志分析
-  # =========================================================
-  - model_name: local-infinite
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.23:8888/v1
-      api_key: sk-unsloth-omarchy23-masterkey
-      max_input_tokens: 262144
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-    model_info:
-      max_tokens: 262144
-
-  - model_name: node3-qwen
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.23:8888/v1
-      api_key: sk-unsloth-omarchy23-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: qwen-256k
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.23:8888/v1
-      api_key: sk-unsloth-omarchy23-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  # =========================================================
-  # 4. Claude Code 专用映射别名 (Anthropic Messages 协议原生对接)
-  # =========================================================
-  - model_name: claude-3-7-sonnet-20250219
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: claude-3-5-sonnet-20241022
-    litellm_params:
-      model: openai/unsloth/Qwen3.8-27B-GGUF
-      api_base: http://172.28.24.22:8080/v1
-      api_key: sk-unsloth-win22-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: claude-3-5-haiku-20241022
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  # =========================================================
-  # 5. 云端模型备用池 (阿里百炼 DashScope)
-  # =========================================================
-  - model_name: qwen-plus
-    litellm_params:
-      model: openai/qwen-plus
-      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
-      api_key: os.environ/DASHSCOPE_API_KEY
-      drop_params: true
-
-  - model_name: qwen3.5-plus
-    litellm_params:
-      model: openai/qwen3.5-plus
-      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
-      api_key: os.environ/DASHSCOPE_API_KEY
-      drop_params: true
-
-  - model_name: glm-5
-    litellm_params:
-      model: openai/glm-5
-      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
-      api_key: os.environ/DASHSCOPE_API_KEY
-      drop_params: true
-
-  - model_name: kimi-k2.5
-    litellm_params:
-      model: openai/kimi-k2.5
-      api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
-      api_key: os.environ/DASHSCOPE_API_KEY
-      drop_params: true
-
-  # =========================================================
-  # 6. DeepSeek 常用模型映射
-  # =========================================================
-  - model_name: deepseek-flash
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: deepseek-v4-flash
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: deepseek-v4-pro
-    litellm_params:
-      model: openai/unsloth/Qwen3.8-27B-GGUF
-      api_base: http://172.28.24.22:8080/v1
-      api_key: sk-unsloth-win22-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: deepseek-chat
-    litellm_params:
-      model: openai/Qwen3.8-27B-UD-Q4_K_M
-      api_base: http://172.28.24.21:8888/v1
-      api_key: sk-unsloth-ubuntu21-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-  - model_name: deepseek-reasoner
-    litellm_params:
-      model: openai/unsloth/Qwen3.8-27B-GGUF
-      api_base: http://172.28.24.22:8080/v1
-      api_key: sk-unsloth-win22-masterkey
-      drop_params: true
-      additional_drop_params: ["reasoning_effort"]
-
-# 路由与级联降级策略
-router_settings:
-  routing_strategy: "usage-based-routing"
-  context_window_fallbacks:
-    - local-auto: ["local-precise", "local-infinite"]
-    - local-fast: ["local-infinite"]
-    - local-precise: ["local-infinite"]
-  fallbacks:
-    - local-auto: ["node1-qwen", "node2-qwen", "node3-qwen"]
-    - local-fast: ["node1-qwen", "node2-qwen", "node3-qwen"]
-    - claude-3-7-sonnet-20250219: ["node2-qwen", "node3-qwen"]
-    - deepseek-flash: ["node2-qwen", "node3-qwen"]
-    - deepseek-v4-flash: ["node2-qwen", "node3-qwen"]
-    - deepseek-v4-pro: ["node3-qwen", "node1-qwen"]
-    - deepseek-chat: ["node2-qwen", "node3-qwen"]
-    - deepseek-reasoner: ["node3-qwen", "node1-qwen"]
-    - qwen-plus: ["local-auto", "local-infinite"]
-
-# 全局通用配置
 general_settings:
   master_key: sk-local-litellm-master-key
-
-# 可观测性配置 (Prometheus + Langfuse)
 litellm_settings:
-  callbacks: ["prometheus", "langfuse"]
-  require_auth_for_metrics_endpoint: false
-  json_logs: true
+  callbacks:
+  - prometheus
+  - langfuse
   drop_params: true
+  json_logs: true
+  require_auth_for_metrics_endpoint: false
   telemetry: false
+model_list:
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 32768
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 32768
+  model_name: local-auto
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: local-fast
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: local-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: node1-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: qwen-fast
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    max_input_tokens: 65536
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_info:
+    max_tokens: 65536
+  model_name: local-precise
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: node2-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: qwen-q8
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.23:8888/v1
+    api_key: sk-unsloth-omarchy23-masterkey
+    drop_params: true
+    max_input_tokens: 262144
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 262144
+  model_name: local-infinite
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.23:8888/v1
+    api_key: sk-unsloth-omarchy23-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: node3-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.23:8888/v1
+    api_key: sk-unsloth-omarchy23-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: qwen-256k
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: claude-3-7-sonnet-20250219
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: claude-3-5-sonnet-20241022
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: claude-3-5-haiku-20241022
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/qwen-plus
+  model_name: qwen-plus
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/qwen3.5-plus
+  model_name: qwen3.5-plus
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/glm-5
+  model_name: glm-5
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/kimi-k2.5
+  model_name: kimi-k2.5
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: deepseek-flash
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: deepseek-v4-flash
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: deepseek-v4-pro
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: deepseek-chat
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: deepseek-reasoner
+router_settings:
+  context_window_fallbacks:
+  - local-auto:
+    - local-precise
+    - local-infinite
+  - local-fast:
+    - local-infinite
+  - local-precise:
+    - local-infinite
+  fallbacks:
+  - local-auto:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
+  - local-fast:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
+  - claude-3-7-sonnet-20250219:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-flash:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-v4-flash:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-v4-pro:
+    - node3-qwen
+    - node1-qwen
+  - deepseek-chat:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-reasoner:
+    - node3-qwen
+    - node1-qwen
+  - qwen-plus:
+    - local-auto
+    - local-infinite
+  routing_strategy: usage-based-routing
