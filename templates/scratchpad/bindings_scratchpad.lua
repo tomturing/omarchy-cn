@@ -4,7 +4,7 @@
 
 -- 1. Antigravity 开发主站 (Super + A)
 hl.unbind("SUPER + A")
-o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad antigravity antigravity 'uwsm-app -- antigravity'")
+o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad '^antigravity$' antigravity 'uwsm-app -- antigravity'")
 
 -- 2. Google AI 独立应用 (Super + X)
 hl.unbind("SUPER + X")

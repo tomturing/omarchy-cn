@@ -80,8 +80,16 @@ if [ -z "$CLASS_PAT" ] || [ -z "$SP_NAME" ]; then
   exit 1
 fi
 
-# 1. 探测目标窗口地址
-ADDR=$(hyprctl clients -j | jq -r --arg p "$CLASS_PAT" '.[] | select(.class | test($p; "i")) | .address' | head -n1)
+# 严格边界保护：若未显式指定正则起止符，则默认严格全字匹配 ^...$
+# 彻底防止 "antigravity" 贪婪匹配到 "antigravity-ide" 等衍生窗口
+if [[ "$CLASS_PAT" != ^* ]] && [[ "$CLASS_PAT" != *\$ ]]; then
+  REGEX="^${CLASS_PAT}$"
+else
+  REGEX="$CLASS_PAT"
+fi
+
+# 1. 探测目标窗口地址（精确匹配 class）
+ADDR=$(hyprctl clients -j | jq -r --arg p "$REGEX" '.[] | select(.class | test($p; "i")) | .address' | head -n1)
 
 if [ -z "$ADDR" ]; then
   # 窗口不存在：拉起启动命令，并在窗口初始化后呼出对应工作区
@@ -162,7 +170,7 @@ o.window("^foot-scratchpad$", {
 
 -- 1. Antigravity 开发主站 (Super + A)
 hl.unbind("SUPER + A")
-o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad antigravity antigravity 'uwsm-app -- antigravity'")
+o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad '^antigravity$' antigravity 'uwsm-app -- antigravity'")
 
 -- 2. Google AI 独立无边框应用 (Super + X)
 hl.unbind("SUPER + X")
@@ -187,6 +195,20 @@ o.bind("SUPER + Z", "Toggle Foot Terminal", "omarchy-toggle-scratchpad foot-scra
 如果直接给 `foot` 设置 `special:foot silent` 规则，会导致你平时在平铺工作区按 `Super + Return` 新开的所有普通 Foot 终端全被抓进后台特殊工作区！
 * **解决方案**：在弹出脚本中使用 `foot --app-id=foot-scratchpad` 启动；
 * 规则只针对 `foot-scratchpad` 生效，平铺开发区使用的标准 `foot` 绝不受到任何波及。
+
+### 3. 同名前缀窗口隔离（Antigravity 与 Antigravity IDE）
+在真实开发环境中，用户经常同时打开：
+* **Antigravity**（对话客户端，Class 为 `antigravity`）
+* **Antigravity IDE**（代码编辑器工作台，Class 为 `antigravity-ide`）
+
+> [!CAUTION]
+> 若在匹配 Class 时使用裸正则（如 jq `test("antigravity")`），由于 `antigravity-ide` 包含了 `antigravity` 这一子串，会导致脚本在探测窗口时**错误地将编辑器窗口 `antigravity-ide` 抓入特殊工作区**，造成按 `Super + A` 时两者捆绑弹出的怪异现象！
+> 
+> **解决之道**：
+> 1. 调度脚本 `omarchy-toggle-scratchpad` 内置严格的起止边界检查（自动补全 `^...$`）；
+> 2. 在绑定快捷键时，传入显式锚定模式 `'^antigravity$'`；
+> 3. 确保 `antigravity-ide` 保持平铺在主常规工作区（如 Workspace 1 / 3），永不被特殊工作区波及。
+
 
 ---
 

@@ -184,7 +184,7 @@ To prevent multiple scratchpad apps from toggling together ("all-in-one bundle")
 3. **Bind Dedicated Shortcuts (`~/.config/hypr/bindings.lua`)**:
    ```lua
    hl.unbind("SUPER + A")
-   o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad antigravity antigravity 'uwsm-app -- antigravity'")
+   o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad '^antigravity$' antigravity 'uwsm-app -- antigravity'")
 
    hl.unbind("SUPER + X")
    o.bind("SUPER + X", "Toggle Google AI", "omarchy-toggle-scratchpad '(chrome-gemini|google-ai)' gemini 'omarchy-launch-webapp https://gemini.google.com'")
