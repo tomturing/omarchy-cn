@@ -39,6 +39,8 @@ omarchy-cn/
 │   │   └── README.md
 │   ├── 04-桌面环境与终端显示/                       # Hyprland 规则、Quickshell 顶栏实时网速、终端中文字符对齐
 │   │   ├── Omarchy顶部栏居中实时网速显示配置指南（Quickshell组件开发、流量无损采集与一键部署脚本）.md
+│   │   ├── Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）.md
+│   │   ├── Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）.md
 │   │   └── README.md
 │   ├── 05-Windows容器虚拟机/                        # Windows 11 容器虚拟机、网络隔离与性能极致精简
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
@@ -52,6 +54,7 @@ omarchy-cn/
 │       ├── 本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）.md
 │       ├── Unsloth-Studio与Qwen3.8-27B双异构算力深度调优、基准评测与全量知识图谱抽取实战（RTX8000显存压榨、MTP多Token推测加速、跨平台TTFT吞吐对比与长文本抽取避坑）.md
 │       ├── 超融合三节点异构大模型集群极致调优指南（Ubuntu快-Windows精-Omarchy长、MTP投机加速80tps、256K满血上下文与LiteLLM动态路由实战）.md
+│       ├── Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）.md
 │       └── README.md
 ├── skills/                                        # Agent Skill 规范目录 (anthropics/skills)
 │   ├── omarchy-chinese-environment/               # 输入法与本地化全链路诊断技能
@@ -104,6 +107,10 @@ omarchy-cn/
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
     ├── tensaku-capture.sh                         # Tensaku F1 智能截图标注包装脚本
     ├── hypr_shortcuts_snippet.lua                 # Hyprland 常用快捷键与 F1 绑定模板
+    ├── scratchpad/                                # 独立专属 Scratchpad 智能调度与规则模板
+    │   ├── omarchy-toggle-scratchpad              # 智能进程检查、跨工作区规整与毫秒级弹出脚本
+    │   ├── windowrules_scratchpad.lua             # 专属窗口规则片段模板
+    │   └── bindings_scratchpad.lua                # 快捷键拓扑片段模板
     ├── netspeed/                                  # Quickshell 顶栏网速组件模板（单例锁+内存文件）
     │   ├── manifest.json
     │   ├── netspeed.sh
@@ -173,6 +180,12 @@ omarchy-cn/
   * **`/proc/net/dev` 极轻量流式采集器**：0% CPU 占用无损差值计算，自动过滤虚拟接口与 Docker 网桥，精准锚定主物理网卡；
   * **交互式 QML 顶栏挂件**：单击即时切换简略模式（`12K 156K`）与精细模式（`↑ 12.4 KB/s ↓ 156.8 KB/s`），悬浮气泡查看接口名与累计网络总吞吐；
   * **`shell.json` 居中插槽优雅接入**：修改 `sections.center` 数组动态挂载插件，提供单行一键安装与平滑重启脚本。
+* [**Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）**](./docs/04-桌面环境与终端显示/Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）.md)
+  * **具名特殊工作区机制（Named Special Workspaces）**：彻底摆脱多应用混挤公共抽屉导致“一按全弹”的困局，为高频工具构建隔离的独立生命周期；
+  * **单键直达拓扑设计**：`Super + A`（Antigravity IDE）、`Super + X`（Google AI 独立无边框 WebApp）、`Super + Z`（Foot 专属便签终端）；
+  * **智能进程守护脚本（`omarchy-toggle-scratchpad`）**：未运行按键自启静默居中、已存在但迷航跨工作区自动规整入驻、就绪时毫秒级平滑切换弹出/隐藏；
+  * **通用临时抽屉双轨制**：完整保留系统原生 `Super + Alt + S`（存入）与 `Super + S`（呼出），支持手头任意临时弹窗随存随取。
+
 
 ### 3. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
 * [**Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md)
@@ -250,6 +263,16 @@ omarchy-cn/
     * 打造 `local-auto` 智能入口：短文本（$\le$ 8K）由 Ubuntu 极速响应，复杂任务转交 Windows 精准脑，超长 Prompt（$>$ 64K ~ 256K）通过 `context_window_fallbacks` 毫秒级自动无缝溢出至 Omarchy 256K 专机；
   * **全栈 Agent 真实上下文校准与 Compaction 防爆自愈**：
     * 深度解决 `dsh` 等 Agent 默认假定云端 1M 上下文导致物理截断的隐蔽缺陷，在 `~/.dsh/settings.yaml` 中精准锚定安全水位，驱动 Agent 在 50K~55K 时主动启动会话提炼压缩（Compaction）。
+* [**Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）**](./docs/07-本地AI与大模型网关/Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）.md)
+  * **单一大脑中枢（SSOT）与统一数据流通路**：
+    * 彻底解决知识图谱在图数据库与离线文件间的“双写漂移与孤岛裂化”，确立以 `Canonical KG` 为系统唯一法定写入源，所有操作首选落盘并触发 `sync_dispatcher.py` 增量多端分发；
+  * **双引擎在线/离线自适应存储**：
+    * **Neo4j 在线热库 (7474/7687)**：承接排障 Agent 毫秒级多跳 Cypher 查询与 Neo4j Browser 交互，为 414 个核心实体与 571 条关系建立全局唯一约束与业务分类动态打标；
+    * **Oxigraph 嵌入式库**：基于本地 RocksDB 的免服务三元组引擎，支持 1399 条标准 RDF 与 SPARQL 1.1 查询，零端口常驻，随拷随走离线交付；
+  * **闭环 CRUD 运维工具与三端可视化交互**：
+    * 提供 `pipeline/manage_kg.py` 实现微观单点增删改实时联动，记录 `changelog.jsonl` 审计流水；
+    * 提供 `pipeline/query_kg.py` 支持向上溯源诱因与向下发散解决方案；
+    * 统一拉起 Neo4j Browser、Semantica Explorer REST 工作台 (8002) 与轻量 Vis-Network 交互全景 (8088)。
 
 ---
 

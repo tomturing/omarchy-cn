@@ -1,6 +1,6 @@
 ---
 name: omarchy-desktop-tweaks
-description: Configure, diagnose, and optimize desktop workflow shortcuts, F1 screenshot annotation (Tensaku integration), and Quickshell center real-time network speed display on Omarchy (Arch Linux + Hyprland). Use when the user asks about Hyprland shortcuts topology, unbinding conflicts, F1 screenshot with in-place annotation, or adding/fixing center widgets like network speed in the Omarchy Quickshell topbar.
+description: Configure, diagnose, and optimize desktop workflow shortcuts, dedicated scratchpads (named special workspaces), F1 screenshot annotation (Tensaku integration), and Quickshell center real-time network speed display on Omarchy (Arch Linux + Hyprland). Use when the user asks about Hyprland shortcuts topology, dedicated app scratchpads, unbinding conflicts, F1 screenshot with in-place annotation, or adding/fixing center widgets like network speed in the Omarchy Quickshell topbar.
 ---
 
 # Omarchy Desktop Tweaks & System Display Skill
@@ -168,6 +168,30 @@ In a dual-monitor setup (e.g. `eDP-1` and `HDMI-A-1`), Quickshell instantiates b
 1. **Singleton Daemon Locking**: Use `exec 200>"$LOCK_FILE"` and `flock -n 200 || exit 0` in background scripts so only 1 sampler runs globally;
 2. **Orphan Prevention**: Start daemons with `setpriv --pdeathsig TERM` and check `kill -0 "$PPID"` in loops so scripts die when Quickshell exits;
 3. **Decouple Via Memory File**: Write sampled JSON atomically to `$XDG_RUNTIME_DIR/xxx.json` (`tmpfs`), and let QML consume via `Quickshell.Io.FileView` instead of streaming high-frequency stdout into the Qt GUI main thread.
+
+---
+
+### Recipe 5: Dedicated App Scratchpads & Dual-Track Topology
+
+To prevent multiple scratchpad apps from toggling together ("all-in-one bundle"), use Hyprland Named Special Workspaces:
+1. **Install Helper**: Deploy `omarchy-toggle-scratchpad` to `~/.local/bin/` (`chmod +x`);
+2. **Define Window Rules (`~/.config/hypr/windowrules.lua`)**:
+   ```lua
+   o.window("^antigravity$", { workspace = "special:antigravity silent", float = true, center = true, size = { 1400, 900 } })
+   o.window("^(chrome-gemini.*|google-ai)$", { workspace = "special:gemini silent", float = true, center = true, size = { 1200, 850 } })
+   o.window("^foot-scratchpad$", { workspace = "special:foot silent", float = true, center = true, size = { 1100, 700 } })
+   ```
+3. **Bind Dedicated Shortcuts (`~/.config/hypr/bindings.lua`)**:
+   ```lua
+   hl.unbind("SUPER + A")
+   o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad antigravity antigravity 'uwsm-app -- antigravity'")
+
+   hl.unbind("SUPER + X")
+   o.bind("SUPER + X", "Toggle Google AI", "omarchy-toggle-scratchpad '(chrome-gemini|google-ai)' gemini 'omarchy-launch-webapp https://gemini.google.com'")
+
+   o.bind("SUPER + Z", "Toggle Foot Terminal", "omarchy-toggle-scratchpad foot-scratchpad foot 'uwsm-app -- foot --app-id=foot-scratchpad'")
+   ```
+4. **Preserve Defaults**: Leave default `SUPER + ALT + S` (Move to scratchpad) and `SUPER + S` (Toggle scratchpad) untouched to retain the universal scratchpad for arbitrary temporary windows.
 
 ---
 

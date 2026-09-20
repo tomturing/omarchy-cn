@@ -1,0 +1,28 @@
+#!/bin/bash
+# Omarchy single-app scratchpad toggle helper
+
+CLASS_PAT="$1"
+SP_NAME="$2"
+shift 2
+LAUNCH_CMD="$*"
+
+if [ -z "$CLASS_PAT" ] || [ -z "$SP_NAME" ]; then
+  echo "Usage: omarchy-toggle-scratchpad <class-pattern> <special-name> <launch-command>"
+  exit 1
+fi
+
+ADDR=$(hyprctl clients -j | jq -r --arg p "$CLASS_PAT" '.[] | select(.class | test($p; "i")) | .address' | head -n1)
+
+if [ -z "$ADDR" ]; then
+  if [ -n "$LAUNCH_CMD" ]; then
+    eval "$LAUNCH_CMD &"
+    sleep 0.4
+    hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$SP_NAME\")" >/dev/null 2>&1 || hyprctl dispatch togglespecialworkspace "$SP_NAME"
+  fi
+else
+  CUR_WS=$(hyprctl clients -j | jq -r --arg a "$ADDR" '.[] | select(.address == $a) | .workspace.name')
+  if [ "$CUR_WS" != "special:$SP_NAME" ]; then
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"special:$SP_NAME\", window = \"address:$ADDR\", follow = false })" >/dev/null 2>&1
+  fi
+  hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$SP_NAME\")" >/dev/null 2>&1 || hyprctl dispatch togglespecialworkspace "$SP_NAME"
+fi
