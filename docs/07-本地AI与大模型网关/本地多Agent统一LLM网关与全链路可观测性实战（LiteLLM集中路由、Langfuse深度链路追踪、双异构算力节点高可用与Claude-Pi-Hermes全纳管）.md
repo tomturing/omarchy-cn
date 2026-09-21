@@ -223,7 +223,7 @@ volumes:
 
 ## 六、全 Agent 统一接入配置实录（三节点版）
 
-> **核心设计原则**：所有 Agent 统一指向 LiteLLM 网关（`http://127.0.0.1:4000`），使用同一个 master key，**所有 Agent 的本地模型名称全量收敛统一为 `local`**，网关侧集中管理上游路由、负载均衡与密钥轮换。
+> **核心设计原则**：所有 Agent 统一指向 LiteLLM 网关（`http://127.0.0.1:4000`），使用同一个 master key，**全量定义 4 大模型矩阵（`local-auto` / `local-fast` / `local-precise` / `local-infinite`）**，既满足智能自适应分流，又赋予用户绝对显式控制权。通过 `environment.d` 全局注入桌面图形会话，**确保点击桌面 APP 图标拉起后在交互页面中均可自由选择使用**。
 
 ### 0. 环境变量持久化（所有 Agent 的底座兜底层）
 
@@ -231,39 +231,45 @@ volumes:
 覆盖所有通过 Shell 启动的 CLI 工具：
 ```bash
 # ============================================================
-# 统一本地 LiteLLM 网关 —— 所有 Agent 使用同一套配置
+# 统一本地 LiteLLM 网关与 4 大模型矩阵
 # Base: http://127.0.0.1:4000 (OpenAI compat: /v1)
 # Master Key: sk-local-litellm-master-key
 # ============================================================
 export ANTHROPIC_BASE_URL="http://127.0.0.1:4000"
 export ANTHROPIC_API_KEY="sk-local-litellm-master-key"
-export ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"   # Claude Code 备用变量名
-export ANTHROPIC_MODEL="local"                             # 统一所有 Agent 默认模型名
-export ANTHROPIC_DEFAULT_SONNET_MODEL="local"
+export ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"
+export ANTHROPIC_MODEL="local-auto"                        # 智能分流中枢 (极速 128K -> 高精 -> 满血 256K)
+export ANTHROPIC_DEFAULT_SONNET_MODEL="local-auto"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="local-fast"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="local-precise"
 
-export OPENAI_BASE_URL="http://127.0.0.1:4000/v1"          # Codex / OpenAI SDK
+export OPENAI_BASE_URL="http://127.0.0.1:4000/v1"
 export OPENAI_API_KEY="sk-local-litellm-master-key"
-export OPENAI_MODEL="local"
+export OPENAI_MODEL="local-auto"
 
 export DEEPSEEK_BASE_URL="http://127.0.0.1:4000"
 export DEEPSEEK_API_KEY="sk-local-litellm-master-key"
 ```
 
 #### B. 桌面环境与 systemd 用户守护进程持久化 (`~/.config/environment.d/10-litellm-gateway.conf`)
-对于通过桌面快捷方式（.desktop）、Spotlight、Hyprland 快捷键拉起或由 systemd 托管的非终端进程，Shell 的 `.bashrc` 无法自动注入。为此，通过 systemd 环境生成器规范实现全局注入：
+对于通过桌面快捷方式（.desktop）、Spotlight、Hyprland 快捷键拉起或由 systemd 托管的非终端进程，通过 systemd 环境生成器规范实现全局注入：
 ```ini
 ANTHROPIC_BASE_URL="http://127.0.0.1:4000"
 ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"
 ANTHROPIC_API_KEY="sk-local-litellm-master-key"
-ANTHROPIC_MODEL="local"
-ANTHROPIC_DEFAULT_SONNET_MODEL="local"
+ANTHROPIC_MODEL="local-auto"
+ANTHROPIC_DEFAULT_SONNET_MODEL="local-auto"
+ANTHROPIC_DEFAULT_HAIKU_MODEL="local-fast"
+ANTHROPIC_DEFAULT_OPUS_MODEL="local-precise"
 OPENAI_BASE_URL="http://127.0.0.1:4000/v1"
 OPENAI_API_KEY="sk-local-litellm-master-key"
-OPENAI_MODEL="local"
+OPENAI_MODEL="local-auto"
+DEEPSEEK_BASE_URL="http://127.0.0.1:4000"
+DEEPSEEK_API_KEY="sk-local-litellm-master-key"
 ```
 生效并同步至用户空间：
 ```bash
-systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL OPENAI_BASE_URL OPENAI_API_KEY OPENAI_MODEL
+systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL OPENAI_BASE_URL OPENAI_API_KEY OPENAI_MODEL DEEPSEEK_BASE_URL DEEPSEEK_API_KEY
 ```
 
 ---
@@ -276,10 +282,10 @@ systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTH
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
     "ANTHROPIC_API_KEY": "sk-local-litellm-master-key",
-    "ANTHROPIC_MODEL": "local",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local",
+    "ANTHROPIC_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local-fast",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local-precise",
     "MAX_THINKING_TOKENS": "0",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
@@ -290,11 +296,11 @@ systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTH
 }
 ```
 
-> **说明**：通过将 `ANTHROPIC_MODEL` 与 Sonnet/Haiku/Opus 全部设为 `local`，Claude Code 启动与日常运行完全对齐本地网关顶级入口，配合 `-b 8192 -ub 2048` 极限批次，TTFT 预填充提速 40%！
+> **交互说明**：Claude Code 默认路由使用 `local-auto`。在交互界面中，可输入 `/model` 自由指定 `local-fast`、`local-precise` 或 `local-infinite` 进行精准切流。
 
 ---
 
-### 2. Pi Agent 全纳管配置
+### 2. Pi Agent 全纳管配置与界面交互选择
 
 编辑 `~/.pi/agent/models.json`：
 ```json
@@ -305,26 +311,11 @@ systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTH
       "api": "openai-completions",
       "apiKey": "sk-local-litellm-master-key",
       "models": [
-        {
-          "id": "local",
-          "name": "Local (统一全集群默认入口: 128K 极速 -> 256K 溢出)",
-          "reasoning": true
-        },
-        {
-          "id": "local-auto",
-          "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 128K)",
-          "reasoning": true
-        },
-        {
-          "id": "local-precise",
-          "name": "Node 2: Windows 22 高精版 (Q8_0 无损, 128K)",
-          "reasoning": true
-        },
-        {
-          "id": "local-infinite",
-          "name": "Node 3: Omarchy 23 满血长文本 (Q4_K_M, 256K)",
-          "reasoning": true
-        }
+        { "id": "local-auto", "name": "Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)", "reasoning": true },
+        { "id": "local-fast", "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)", "reasoning": true },
+        { "id": "local-precise", "name": "Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)", "reasoning": true },
+        { "id": "local-infinite", "name": "Node 3: Omarchy 23 满血长文本 (256K Context)", "reasoning": true },
+        { "id": "local", "name": "Local (兼容入口)", "reasoning": true }
       ]
     }
   }
@@ -336,8 +327,12 @@ systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTH
 {
   "theme": "omarchy-system",
   "defaultProvider": "local-gateway",
-  "defaultModel": "local",
+  "defaultModel": "local-auto",
   "enabledModels": [
+    "local-auto",
+    "local-fast",
+    "local-precise",
+    "local-infinite",
     "local"
   ],
   "retry": {
@@ -351,34 +346,35 @@ systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTH
 }
 ```
 
+> **交互说明**：点击图标启动 Pi 后，在界面输入 `/model` 即可弹出包含 4 大模型的选择列表，随心切换！
+
 ---
 
-### 3. Hermes Agent 全纳管配置
+### 3. Hermes Agent 与 Hermes Desktop 全纳管配置
 
-编辑 `~/.hermes/config.yaml` 中的 model 节：
+编辑 `~/.hermes/config.yaml`：
 ```yaml
 model:
-  default: local
+  default: local-auto
   provider: custom
   base_url: http://127.0.0.1:4000/v1
   api_key: sk-local-litellm-master-key
 ```
 
-在交互中若需显式切入特定节点，依然支持指定别名：
-```bash
-hermes chat --model local          # 统一默认入口 (极速 128K -> 溢出 256K)
-hermes chat --model local-precise  # 高精度（节点 2）
-hermes chat --model local-infinite # 256K 超长（节点 3）
-```
+无论通过桌面图标点击打开 `hermes-desktop` GUI，还是终端调用，均支持自由选择：
+* `local-auto`：默认自适应分流；
+* `local-fast`：直通极速出字节点 1；
+* `local-precise`：直通准无损高精节点 2；
+* `local-infinite`：直通 256K 超长上下文节点 3。
 
 ---
 
-### 4. dsh (Pi CLI) 全纳管配置
+### 4. DeepSeek Harness (dsh) 桌面应用全纳管
 
 编辑 `~/.dsh/settings.yaml`：
 ```yaml
 agent-default-model:
-  model: local
+  model: local-auto
   provider: local-gateway
 
 llm-deepseek:
@@ -389,29 +385,34 @@ llm-pi-ai:
   providers:
     local-gateway:
       api: openai-completions
-      apiKeyEnv: DEEPSEEK_API_KEY    # 读取 ~/.bashrc 中统一注入的 master key
+      apiKeyEnv: DEEPSEEK_API_KEY
       baseURL: http://127.0.0.1:4000/v1
-      displayName: Local Gateway (LiteLLM 三节点集群)
+      displayName: Local Gateway (LiteLLM Cluster)
       models:
-        - contextWindow: 131072
-          id: local
-          name: "Local (统一全集群默认入口: 128K 极速 -> 256K 溢出)"
-        - contextWindow: 131072
-          id: local-auto
-          name: "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)"
-        - contextWindow: 131072
-          id: local-precise
-          name: "Node 2: Windows 22 高精版 (Q8_0 无损精度)"
-        - contextWindow: 262144
-          id: local-infinite
-          name: "Node 3: Omarchy 23 满血长文本 (256K Context)"
+      - contextWindow: 131072
+        id: local-auto
+        name: 'Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)'
+      - contextWindow: 131072
+        id: local-fast
+        name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)'
+      - contextWindow: 131072
+        id: local-precise
+        name: 'Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)'
+      - contextWindow: 262144
+        id: local-infinite
+        name: 'Node 3: Omarchy 23 满血长文本 (256K Context)'
+      - contextWindow: 131072
+        id: local
+        name: 'Local (兼容入口)'
 ```
+
+> **交互说明**：点击桌面 `deepseek-harness.desktop` 图标启动后，界面顶部下拉菜单直接支持在 4 大模型间无缝切换。
 
 ---
 
 ### 5. Antigravity（本机 AGY）
 
-Antigravity 通过 Shell 环境变量读取 `ANTHROPIC_BASE_URL`、`ANTHROPIC_API_KEY` 与 `ANTHROPIC_MODEL`，已在 `~/.bashrc` 及 `~/.config/environment.d/` 统一持久化为 `local`，无需额外配置文件。
+Antigravity 通过桌面全局环境变量读取 `ANTHROPIC_BASE_URL`、`ANTHROPIC_API_KEY` 与 `ANTHROPIC_MODEL`，已在 `~/.config/environment.d/` 统一持久化为 `local-auto`，无需额外配置文件。
 
 ---
 
@@ -419,20 +420,19 @@ Antigravity 通过 Shell 环境变量读取 `ANTHROPIC_BASE_URL`、`ANTHROPIC_AP
 
 > **⚠️ Codex 无法接入本地网关**：Codex 是 OpenAI 出品的 Electron GUI 应用，通过 OAuth 账号登录认证，不读取 `OPENAI_BASE_URL` 环境变量，不支持 `base_url` 重定向，属于产品架构封闭限制，无法绕过。
 
-已在 `~/.bashrc` 写入 `OPENAI_BASE_URL` 以覆盖命令行工具（如 `openai` Python SDK、`curl` 脚本等），但 Codex GUI 进程不受影响。
-
 ---
 
-## 七、各 Agent 接入状态汇总（全量统一为 local 最新版）
+## 七、各 Agent 接入状态汇总（4 大核心模型矩阵最新版）
 
-| Agent | 接入方式 | Base URL | API Key | 默认模型 | 状态 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Claude Code** | `~/.claude/settings.json` env | `http://127.0.0.1:4000` | master-key | **`local`** | ✅ 统一接入 |
-| **Pi Agent** | `~/.pi/agent/settings.json` | `http://127.0.0.1:4000/v1` | master-key（直接写入） | **`local`** | ✅ 统一接入 |
-| **Hermes** | `~/.hermes/config.yaml` | `http://127.0.0.1:4000/v1` | master-key（直接写入） | **`local`** | ✅ 统一接入 |
-| **dsh** | `~/.dsh/settings.yaml` | `http://127.0.0.1:4000/v1` | `$DEEPSEEK_API_KEY` env | **`local`** | ✅ 统一接入 |
-| **Antigravity** | Shell env (`~/.bashrc`) | `http://127.0.0.1:4000` | `$ANTHROPIC_API_KEY` env | **`local`** | ✅ 统一接入 |
-| **Codex** | ❌ 账号登录 (OAuth) | 不支持重定向 | OpenAI 账号 | gpt-5.x | ⚠️ 架构限制，无法接入 |
+| Agent | 启动方式 | Base URL | API Key | 默认模型 | 交互页面支持选择的模型 | 状态 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Claude Code** | 图标 / CLI | `http://127.0.0.1:4000` | master-key | **`local-auto`** | `local-auto`, `local-fast`, `local-precise`, `local-infinite` | ✅ 统一接入 |
+| **Pi Agent** | 图标 / CLI | `http://127.0.0.1:4000/v1` | master-key | **`local-auto`** | `/model` 下拉可选全部 4 个模型 | ✅ 统一接入 |
+| **Hermes Desktop**| APP 图标 | `http://127.0.0.1:4000/v1` | master-key | **`local-auto`** | 界面设置可选全部 4 个模型 | ✅ 统一接入 |
+| **dsh** | APP 图标 | `http://127.0.0.1:4000/v1` | `$DEEPSEEK_API_KEY` | **`local-auto`** | 顶部下拉菜单可选全部 4 个模型 | ✅ 统一接入 |
+| **Antigravity** | APP 图标 | `http://127.0.0.1:4000` | master-key | **`local-auto`** | 遵循系统全局注入模型 | ✅ 统一接入 |
+| **Codex** | 桌面应用 | 不支持重定向 | OpenAI 账号 | gpt-5.x | ⚠️ 架构限制，无法接入本地网关 | ⚠️ 架构限制 |
+
 
 ---
 

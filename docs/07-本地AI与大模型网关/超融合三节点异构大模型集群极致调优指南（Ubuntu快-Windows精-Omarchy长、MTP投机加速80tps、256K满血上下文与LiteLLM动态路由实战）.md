@@ -557,14 +557,83 @@ router_settings:
 
 ---
 
-## 5. 多 Agent 统一纳管规范（全量收敛统一为 `local`）
+## 5. 4 大模型矩阵体系与多 Agent 统一纳管规范（支持 APP 图标启动与页面交互选择）
 
-为了彻底消除“多 Agent 配置不同模型名称”导致的认知负荷与路由错位，所有 Agent 的本地模型名称统一收敛为 **`local`**。
+集群完整定义并暴露出 **4 大模型矩阵**，兼顾“智能自适应分流”与“用户绝对显式控制”，并已在桌面环境中通过 `environment.d` 实现全局持久化，确保**通过桌面 APP 图标点击启动后，在应用交互页面中均可自由选择使用**：
 
-### 5.1 dsh Agent 配置校准 (`~/.dsh/settings.yaml`)
+* **`local-auto`** ➔ **智能全能中枢**：根据上下文长度（120K 自动溢出至 256K 节点 3）及任务复杂度（低温度/高精逻辑切节点 2，常规极速切节点 1）自动分流，并具备跨节点故障转移（Failover）；
+* **`local-fast`** ➔ **节点 1 (Ubuntu 21)**：直通极速嘴，Q4_K_M + 原生 Auto MTP，41.79 t/s 秒级直出；
+* **`local-precise`** ➔ **节点 2 (Windows 22)**：直通高精脑，Q8_0 物理级准无损精度，30.10 t/s；
+* **`local-infinite`** ➔ **节点 3 (Omarchy 23)**：直通超长全仓专机，256K (262,144 Tokens) 满血窗口秒级响应。
+
+---
+
+### 5.0 桌面 APP 图标启动的环境变量保障 (`~/.config/environment.d/10-litellm-gateway.conf`)
+对于通过应用启动器、桌面快捷方式（`.desktop`）或 Hyprland 快捷键拉起的 GUI 进程，由于不经过终端登录 Shell，无法自动读取 `.bashrc`。通过 systemd 环境生成器规范在图形会话层全局注入：
+```ini
+ANTHROPIC_BASE_URL="http://127.0.0.1:4000"
+ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"
+ANTHROPIC_API_KEY="sk-local-litellm-master-key"
+ANTHROPIC_MODEL="local-auto"
+ANTHROPIC_DEFAULT_SONNET_MODEL="local-auto"
+ANTHROPIC_DEFAULT_HAIKU_MODEL="local-fast"
+ANTHROPIC_DEFAULT_OPUS_MODEL="local-precise"
+OPENAI_BASE_URL="http://127.0.0.1:4000/v1"
+OPENAI_API_KEY="sk-local-litellm-master-key"
+OPENAI_MODEL="local-auto"
+```
+执行生效：
+```bash
+systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL OPENAI_BASE_URL OPENAI_API_KEY OPENAI_MODEL
+```
+
+---
+
+### 5.1 Pi Agent 全纳管与页面自由选择 (`~/.pi/agent/`)
+
+* **模型列表注册 (`~/.pi/agent/models.json`)**：
+  ```json
+  {
+    "providers": {
+      "local-gateway": {
+        "baseUrl": "http://127.0.0.1:4000/v1",
+        "api": "openai-completions",
+        "apiKey": "sk-local-litellm-master-key",
+        "models": [
+          { "id": "local-auto", "name": "Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)", "reasoning": true },
+          { "id": "local-fast", "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)", "reasoning": true },
+          { "id": "local-precise", "name": "Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)", "reasoning": true },
+          { "id": "local-infinite", "name": "Node 3: Omarchy 23 满血长文本 (256K Context)", "reasoning": true },
+          { "id": "local", "name": "Local (兼容入口)", "reasoning": true }
+        ]
+      }
+    }
+  }
+  ```
+* **页面选择启用 (`~/.pi/agent/settings.json`)**：
+  ```json
+  {
+    "defaultProvider": "local-gateway",
+    "defaultModel": "local-auto",
+    "enabledModels": [
+      "local-auto",
+      "local-fast",
+      "local-precise",
+      "local-infinite",
+      "local"
+    ]
+  }
+  ```
+* **交互效果**：点击图标打开 Pi 交互界面后，输入 `/model` 即可弹出全量模型列表，光标一键切换！
+
+---
+
+### 5.2 DeepSeek Harness (dsh) 桌面应用纳管 (`~/.dsh/settings.yaml`)
+
+用户从桌面点击 `deepseek-harness.desktop` 图标启动后，交互界面顶部模型选择下拉菜单将直接呈现 4 大模型：
 ```yaml
 agent-default-model:
-  model: local
+  model: local-auto
   provider: local-gateway
 
 llm-deepseek:
@@ -580,36 +649,40 @@ llm-pi-ai:
       displayName: Local Gateway (LiteLLM Cluster)
       models:
       - contextWindow: 131072
-        id: local
-        name: 'Local (统一全集群默认入口: 128K 极速 -> 256K 溢出)'
-      - contextWindow: 131072
         id: local-auto
-        name: Local Auto (Fast 128K -> Precise 128K -> Infinite 256K)
+        name: 'Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)'
       - contextWindow: 131072
         id: local-fast
         name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)'
       - contextWindow: 131072
         id: local-precise
-        name: 'Node 2: Windows 22 高精版 (Q8_0 无损精度)'
+        name: 'Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)'
       - contextWindow: 262144
         id: local-infinite
         name: 'Node 3: Omarchy 23 满血长文本 (256K Context)'
+      - contextWindow: 131072
+        id: local
+        name: 'Local (兼容入口)'
 
 ui-onboarding:
   welcomeNoticeVersion: 2026-08-13.1
 ```
 
-### 5.2 Claude Code 统一纳管 (`~/.claude/settings.json`)
+---
+
+### 5.3 Claude Code 全纳管与模型层级对齐 (`~/.claude/settings.json`)
+
+无论从终端还是快捷方式启动，进入 Claude Code 交互页面后，默认即为 `local-auto`，并支持通过 `/model` 随时自由切换：
 ```json
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
     "ANTHROPIC_API_KEY": "sk-local-litellm-master-key",
-    "ANTHROPIC_MODEL": "local",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local",
+    "ANTHROPIC_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local-fast",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local-precise",
     "MAX_THINKING_TOKENS": "0",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
@@ -619,9 +692,19 @@ ui-onboarding:
 }
 ```
 
-### 5.3 Pi 与 Hermes 统一纳管
-* **Pi Agent (`~/.pi/agent/settings.json`)**：`"defaultModel": "local"`, `"enabledModels": ["local"]`
-* **Hermes Agent (`~/.hermes/config.yaml`)**：`model.default: local`
+---
+
+### 5.4 Hermes Agent 与 Hermes Desktop 统一纳管 (`~/.hermes/config.yaml`)
+
+无论是点击 `/usr/share/applications/hermes-desktop.desktop` 启动 GUI，还是使用命令行，均统一挂载本地网关：
+```yaml
+model:
+  default: local-auto
+  provider: custom
+  base_url: http://127.0.0.1:4000/v1
+  api_key: sk-local-litellm-master-key
+```
+在交互中输入 `/model` 或通过参数选择 `local-fast`、`local-precise`、`local-infinite` 均能直接生效。
 
 ---
 

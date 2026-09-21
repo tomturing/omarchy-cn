@@ -235,8 +235,8 @@ omarchy-cn/
 
 ### 5. 本地AI与大模型网关 (`docs/07-本地AI与大模型网关`)
 * [**本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）**](./docs/07-本地AI与大模型网关/本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）.md)
-  * **所有 Agent 本地模型全量统一收敛为 `local`**：彻底终结 Claude Code、Pi Agent、Hermes Agent 与 dsh 配置互斥混乱的历史，全部统一使用单一模型标识 `local` 与 master key，网关侧集中完成智能路由、自动 Fallback 与 128K $\to$ 256K 溢出；
-  * **桌面级环境全局持久化 (`~/.config/environment.d/`)**：通过 systemd 环境生成器注入 `ANTHROPIC_MODEL="local"` 与 `OPENAI_MODEL="local"`，覆盖终端、桌面快捷方式与非终端 GUI 进程；
+  * **4 大核心模型矩阵全 Agent 纳管（支持桌面 APP 图标启动与界面自由选择）**：完整定义并暴露 `local-auto`（智能分流中枢）、`local-fast`（极速嘴）、`local-precise`（高精脑）、`local-infinite`（256K 满血长文本）。Pi Agent（`/model` 交互）、dsh（顶部下拉菜单）、Hermes Desktop、Claude Code 均可在交互界面自由选择切换；
+  * **桌面级环境全局持久化 (`~/.config/environment.d/`)**：通过 systemd 环境生成器注入 `ANTHROPIC_MODEL="local-auto"` 等变量并导入用户会话，确保桌面图标启动的 GUI 进程与终端一致读取网关与模型矩阵；
   * **协议双向实时转译**：无缝支持 OpenAI Chat Completions 与 Anthropic Messages 协议互转，使 Claude Code、Pi、Hermes、Dify 等异构 Agent 零改造共享私有大模型与云端 API；
   * **全链路深度可观测性满配（Langfuse v2 + Prometheus）**：本地轻量自建 Langfuse v2 运维大屏，实时追踪记录每个 Agent 的 Prompt、思维链（Thinking）、流式 Token 耗时、首字延迟（TTFT）与物理节点路由标记；
   * **核心生产陷阱根治实录**：LiteLLM 剥离 `reasoning_effort: high` 消除 Jinja 模板 500 崩溃；注入 `DOCS_URL=/docs` 恢复 Swagger UI；锁定 `langfuse<3` 解决 SDK 断裂。

@@ -130,24 +130,30 @@ router_settings:
 
 ## 5. Agent Context Calibration & Compaction Runbook
 
-All agents are consolidated to point to the unified model identifier **`local`**.
+All agents are consolidated to support the **4-Tier Model Matrix** (`local-auto`, `local-fast`, `local-precise`, `local-infinite`) and work seamlessly whether launched from CLI or **desktop APP icons** (via `~/.config/environment.d/10-litellm-gateway.conf`).
 
 ### 5.1 dsh Agent Calibration (`~/.dsh/settings.yaml`)
 ```yaml
 agent-default-model:
   provider: local-gateway
-  model: local
+  model: local-auto
 
 llm-pi-ai:
   providers:
     local-gateway:
       baseURL: http://127.0.0.1:4000/v1
       models:
-        - id: local
-          name: "Local (Unified Default: Fast 128K -> Infinite 256K)"
+        - id: local-auto
+          name: "Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)"
+          contextWindow: 131072
+        - id: local-fast
+          name: "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)"
+          contextWindow: 131072
+        - id: local-precise
+          name: "Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)"
           contextWindow: 131072
         - id: local-infinite
-          name: "Local Infinite (Omarchy 256K)"
+          name: "Node 3: Omarchy 23 满血长文本 (256K Context)"
           contextWindow: 262144
 ```
 
@@ -157,12 +163,17 @@ llm-pi-ai:
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
-    "ANTHROPIC_MODEL": "local",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local",
+    "ANTHROPIC_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local-fast",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local-precise",
     "MAX_THINKING_TOKENS": "0"
   }
 }
 ```
+
+### 5.3 Pi Agent Calibration (`~/.pi/agent/settings.json` & `models.json`)
+Enabled models include `local-auto`, `local-fast`, `local-precise`, `local-infinite`. Users can switch via `/model` directly in the interactive UI.
 
 ### 5.3 Windows 22 Node REST API Remote Management
 Manage Windows Unsloth Studio dynamically via REST API without Remote Desktop:
