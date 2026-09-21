@@ -6,6 +6,11 @@
       "apiKey": "sk-local-litellm-master-key",
       "models": [
         {
+          "id": "local",
+          "name": "Local (统一全集群默认入口: 128K 极速 -> 256K 溢出)",
+          "reasoning": true
+        },
+        {
           "id": "local-auto",
           "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 128K)",
           "reasoning": true

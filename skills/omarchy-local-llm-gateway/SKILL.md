@@ -75,6 +75,19 @@ bash <skill_dir>/scripts/manage_gateway.sh {status|restart|reload|logs|test|chec
 In `~/.config/litellm/config.yaml`:
 ```yaml
 model_list:
+  # 统一顶级默认入口 (local)
+  - model_name: local
+    litellm_params:
+      model: openai/Qwen3.8-27B-UD-Q4_K_M
+      api_base: http://172.28.24.21:8888/v1
+      api_key: sk-unsloth-ubuntu21-masterkey
+      max_input_tokens: 131072
+      drop_params: true
+      additional_drop_params: ["reasoning_effort"]
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
+
   - model_name: local-auto
     litellm_params:
       model: openai/Qwen3.8-27B-UD-Q4_K_M
@@ -108,6 +121,7 @@ model_list:
 router_settings:
   routing_strategy: "usage-based-routing"
   context_window_fallbacks:
+    - local: ["local-precise", "local-infinite"]
     - local-auto: ["local-precise", "local-infinite"]
     - local-precise: ["local-infinite"]
 ```
@@ -116,20 +130,21 @@ router_settings:
 
 ## 5. Agent Context Calibration & Compaction Runbook
 
+All agents are consolidated to point to the unified model identifier **`local`**.
+
 ### 5.1 dsh Agent Calibration (`~/.dsh/settings.yaml`)
-To prevent `dsh` from assuming a 1M token cloud context and getting truncated at physical limits:
 ```yaml
 agent-default-model:
   provider: local-gateway
-  model: local-auto
+  model: local
 
 llm-pi-ai:
   providers:
     local-gateway:
       baseURL: http://127.0.0.1:4000/v1
       models:
-        - id: local-auto
-          name: "Local Auto (Fast 128K -> Precise 128K -> Infinite 256K)"
+        - id: local
+          name: "Local (Unified Default: Fast 128K -> Infinite 256K)"
           contextWindow: 131072
         - id: local-infinite
           name: "Local Infinite (Omarchy 256K)"
@@ -142,10 +157,19 @@ llm-pi-ai:
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
-    "ANTHROPIC_MODEL": "claude-3-7-sonnet-20250219",
+    "ANTHROPIC_MODEL": "local",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local",
     "MAX_THINKING_TOKENS": "0"
   }
 }
+```
+
+### 5.3 Windows 22 Node REST API Remote Management
+Manage Windows Unsloth Studio dynamically via REST API without Remote Desktop:
+```bash
+./templates/local-llm-gateway/reload_windows_q8.sh load    # Inject -b 8192 -ub 2048
+./templates/local-llm-gateway/reload_windows_q8.sh status  # Query inference engine status
+./templates/local-llm-gateway/reload_windows_q8.sh unload  # Release VRAM
 ```
 
 ---

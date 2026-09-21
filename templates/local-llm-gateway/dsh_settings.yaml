@@ -1,5 +1,5 @@
 agent-default-model:
-  model: local-auto
+  model: local
   provider: local-gateway
 llm-deepseek:
   apiKeyEnv: DEEPSEEK_API_KEY
@@ -13,8 +13,11 @@ llm-pi-ai:
       displayName: Local Gateway (LiteLLM Cluster)
       models:
       - contextWindow: 131072
+        id: local
+        name: 'Local (统一全集群默认入口: 128K 极速 -> 256K 溢出)'
+      - contextWindow: 131072
         id: local-auto
-        name: Local Auto (Fast 8K -> Precise 64K -> Infinite 256K)
+        name: Local Auto (Fast 128K -> Precise 128K -> Infinite 256K)
       - contextWindow: 131072
         id: local-fast
         name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 80 t/s)'

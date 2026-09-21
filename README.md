@@ -32,6 +32,7 @@ omarchy-cn/
 │   │   ├── 物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）.md
 │   │   ├── Omarchy高频快捷键与F1截图标注全攻略（Hyprland按键拓扑、Tensaku现代标注集成与一键配置脚本）.md
 │   │   ├── Omarchy离线语音输入识别配置指南（Voxtype与Whisper普通话模型、RTX显卡GPU加速及剪贴板直通）.md
+│   │   ├── Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）.md
 │   │   └── README.md
 │   ├── 02-中文字体与本地化/                         # 系统 Locale、思源字体优先级、Fontconfig 避坑
 │   │   └── README.md
@@ -169,6 +170,11 @@ omarchy-cn/
   * **蓝牙耳机静音幻觉攻克**：深入解决蓝牙 A2DP $\to$ HFP 切换延迟导致的无声录音与 YouTube 字幕幻觉（"请按赞、订阅、转发"）；
   * **Wayland 虚拟按键防吞字**：揭秘 `mode = "type"` 在 Electron/Fcitx5 下字符被拦截吞掉的机理，切换为 `mode = "paste"` 剪贴板直通实现 100% 零漏字；
   * **RTX 2060 6GB 显存兼顾策略**：`voxtype-vulkan` 硬件加速将识别延迟从 CPU 的 6 秒压缩至 850 毫秒，且显存仅占 466MB，与本地大模型（`llama-server`）稳定共存。
+* [**Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）**](./docs/01-输入法与按键/Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）.md)
+  * **根治退格删空跳行首与回车空格误删**：揭秘行内预编辑（`PreeditEnabledByDefault=True`）在 Monaco/Electron 下引发的 Composition 选区时序混乱与 IPC 锁步卡顿，通过独立浮窗预编辑彻底根治；
+  * **Wayland 惰性光标上报机理解密**：剖析大部分应用切换输入框后首字在屏幕左侧偏中、打出第一字后才瞬移吸附到光标的根本原因与应对策略；
+  * **悬浮弹窗极速唤醒**：破解 Wayland 子表面 Inactive 状态下 Shift 切换失效问题，`Ctrl + Space` 就地一键激活拼音；
+  * **经典 UI 字体与黑底高亮定制**：配置 12pt 精致清晰字号，打造首选候选词纯黑背景（`#000000`）配纯白高对比度文字定制主题，激活 `Ctrl + Alt + P` 动态热键。
 
 ### 2. 桌面环境与终端显示 (`docs/04-桌面环境与终端显示`)
 * [**Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）**](./docs/04-桌面环境与终端显示/Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）.md)
@@ -229,40 +235,27 @@ omarchy-cn/
 
 ### 5. 本地AI与大模型网关 (`docs/07-本地AI与大模型网关`)
 * [**本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）**](./docs/07-本地AI与大模型网关/本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）.md)
-  * **多 Agent 凭据与算力治理**：使用 LiteLLM 统一网关收口管理海量上游 Key、模型别名与异构算力池（Linux Unsloth Q8_0 高精度节点 + Windows llama.cpp Q4_K 快速节点），为各 Agent 提供单一入口（`http://127.0.0.1:4000`）；
+  * **所有 Agent 本地模型全量统一收敛为 `local`**：彻底终结 Claude Code、Pi Agent、Hermes Agent 与 dsh 配置互斥混乱的历史，全部统一使用单一模型标识 `local` 与 master key，网关侧集中完成智能路由、自动 Fallback 与 128K $\to$ 256K 溢出；
+  * **桌面级环境全局持久化 (`~/.config/environment.d/`)**：通过 systemd 环境生成器注入 `ANTHROPIC_MODEL="local"` 与 `OPENAI_MODEL="local"`，覆盖终端、桌面快捷方式与非终端 GUI 进程；
   * **协议双向实时转译**：无缝支持 OpenAI Chat Completions 与 Anthropic Messages 协议互转，使 Claude Code、Pi、Hermes、Dify 等异构 Agent 零改造共享私有大模型与云端 API；
-  * **全链路深度可观测性满配（Langfuse v2 + Prometheus）**：
-    * 本地轻量自建 Langfuse v2 运维大屏（单机单容器 + Postgres 15），内存开销仅 400MB；
-    * 实时追踪记录每一个 Agent 的 Prompt 输入、思维链（Thinking）、流式 Token 耗时、首字延迟（TTFT）与物理节点路由标记；
-    * 暴露 `/metrics/` 端点对接 Prometheus/Grafana 监控指标；
-  * **四大核心生产陷阱根治实录**：
-    * **Claude Code 500 报错根治**：LiteLLM 剥离 `reasoning_effort: high`，关闭 Extended Thinking 消除 Unsloth/llama.cpp Jinja 模板崩溃；
-    * **Swagger UI 404 修复**：注入 `DOCS_URL=/docs` 环境变量恢复 `/docs` OpenAPI 交互文档；
-    * **Langfuse Python SDK 兼容性死锁**：降级锁定 `langfuse<3` 根治 `AttributeError: module 'langfuse' has no attribute 'version'`；
-    * **Arch Linux 密码超时与 Docker 免密**：配置 `/etc/sudoers.d/<username>-docker` 解决 fprintd 指纹超时阻塞 Docker 运维。
+  * **全链路深度可观测性满配（Langfuse v2 + Prometheus）**：本地轻量自建 Langfuse v2 运维大屏，实时追踪记录每个 Agent 的 Prompt、思维链（Thinking）、流式 Token 耗时、首字延迟（TTFT）与物理节点路由标记；
+  * **核心生产陷阱根治实录**：LiteLLM 剥离 `reasoning_effort: high` 消除 Jinja 模板 500 崩溃；注入 `DOCS_URL=/docs` 恢复 Swagger UI；锁定 `langfuse<3` 解决 SDK 断裂。
 * [**Unsloth-Studio与Qwen3.8-27B双异构算力深度调优、基准评测与全量知识图谱抽取实战（RTX8000显存压榨、MTP多Token推测加速、跨平台TTFT吞吐对比与长文本抽取避坑）**](./docs/07-本地AI与大模型网关/Unsloth-Studio与Qwen3.8-27B双异构算力深度调优、基准评测与全量知识图谱抽取实战（RTX8000显存压榨、MTP多Token推测加速、跨平台TTFT吞吐对比与长文本抽取避坑）.md)
-  * **显存与硬件级第一性原理调优**：
-    * 详尽推导 Quadro RTX 8000 48GB 显存容量分配，开启 8-bit KV Cache 量化（`--cache-type-k/v q8_0`）使显存开销直降 50%，充裕承载 64K 超长上下文；
-    * 踩坑修复新版 llama.cpp Flash Attention 语法陷阱（`--flash-attn on` 参数错位引发的死锁崩溃）；
-    * 原生激活 Qwen3 MTP 多 Token 投机采样（`--spec-type draft-mtp`），采样命中率达 **72%**，解码生成吞吐稳定在 **30.5 tokens/s**；
-  * **跨平台双节点性能实测基准（Linux Q8_0 vs Windows Q4_K_M）**：
-    * **TTFT 首字延迟**：短文本场景 Windows 节点仅 **0.50 秒**（秒级响应），极长文本（3K+ Tokens）Linux 节点凭借 16 核并发预填充反超（**3.6 秒**）；
-    * **生成吞吐**：Windows 端 Q4_K_M 受益于显存带宽减负达 **44.5 tokens/s**（快 50%），Linux 端 Q8_0 保证严密无损精度；
-  * **Windows 局域网网络与防火墙避坑**：
-    * 根治 Windows 端 Unsloth 默认仅绑定 `127.0.0.1` 导致的局域网无法访问假通假死，显式注入 `-H 0.0.0.0` 与多 Profile 防火墙放行；
-  * **Semantica 大规模知识图谱全量抽取实战**：
-    * 治理深度推理思维链（Thinking）耗尽输出配额导致的正文截断，注入 `chat_template_kwargs={"enable_thinking": False}` 直出标准 JSON；
-    * 从 23.8MB 故障手册（693段落）中全量沉淀 **414 个核心实体与 618 条因果关系拓扑**；
-    * 解决 yEd 初始打开节点横向重叠色条问题，提供一键有机布局方案与基于 `vis-network` 的交互式 Web 全景拓扑浏览器。
+  * **显存与硬件级第一性原理调优**：推导 Quadro RTX 8000 48GB 显存分配，开启 8-bit KV Cache 量化（`--cache-type-k/v q8_0`）使显存开销直降 50%，充裕承载 64K 超长上下文；修复 Flash Attention 语法陷阱；激活 Qwen3 MTP 投机采样（解码生成吞吐稳定在 **30.5 tokens/s**）；
+  * **跨平台性能基准与网络避坑**：对比 Linux Q8_0 与 Windows Q4_K_M 性能，攻克 Windows 默认绑定 `127.0.0.1` 假通假死顽疾；
+  * **Semantica 大规模知识图谱全量抽取实战**：注入 `enable_thinking: false` 直出标准 JSON，从 23.8MB 故障手册中沉淀 **414 个核心实体与 618 条因果关系拓扑**，提供交互式 Web 全景拓扑浏览器。
 * [**超融合三节点异构大模型集群极致调优指南（Ubuntu快-Windows精-Omarchy长、MTP投机加速80tps、256K满血上下文与LiteLLM动态路由实战）**](./docs/07-本地AI与大模型网关/超融合三节点异构大模型集群极致调优指南（Ubuntu快-Windows精-Omarchy长、MTP投机加速80tps、256K满血上下文与LiteLLM动态路由实战）.md)
-  * **三机异构矩阵与极致速度优先（第一优先级）**：
-    * **节点 1 (Ubuntu 21 - 快)**：主攻“快”，部署 `Qwen3.8-27B-Q4_K_M`，开启 Xeon 6244 CPU 锁频 Performance 模式与原生 MTP 多 Token 投机解码（双 Token 并发预测），实测打字速度打破物理显存带宽限制，飙升至 **75 ~ 88 tokens/s**（提升近 3 倍），首字延迟仅 **0.15 秒**；
-    * **节点 2 (Windows 22 - 精)**：主攻“精”，部署 `Qwen3.8-27B-Q8_0`（27.05GB 权重），承接深度架构设计、复杂数学逻辑与本体模型严谨推理，提供物理级无损浮点精度；
-    * **节点 3 (Omarchy 23 - 长)**：主攻“长”，部署 `Qwen3.8-27B-Q4_K_M` + Q4 KV Cache（显存仅占 16GB），实现单张 48G 卡在仅占 35GB 显存下**纯显存满血承载 256K (262,144 Tokens) 超长上下文**，彻底根除大模型阅读超长工程时的截断与 OOM 风险；
-  * **LiteLLM Context-Aware 动态级联智能路由**：
-    * 打造 `local-auto` 智能入口：短文本（$\le$ 8K）由 Ubuntu 极速响应，复杂任务转交 Windows 精准脑，超长 Prompt（$>$ 64K ~ 256K）通过 `context_window_fallbacks` 毫秒级自动无缝溢出至 Omarchy 256K 专机；
-  * **全栈 Agent 真实上下文校准与 Compaction 防爆自愈**：
-    * 深度解决 `dsh` 等 Agent 默认假定云端 1M 上下文导致物理截断的隐蔽缺陷，在 `~/.dsh/settings.yaml` 中精准锚定安全水位，驱动 Agent 在 50K~55K 时主动启动会话提炼压缩（Compaction）。
+  * **首字延迟 (TTFT) 算力瓶颈攻破与极限批次 (-b 8192 -ub 2048)**：
+    * 剖析 Claude Code 启动时 18K Token 预填充计算密集型（Compute-bound）本质，提升微批处理至 `-ub 2048` 打满 RTX 8000 Tensor Core 并行度，Prompt 评估速度从 630 t/s 跃升至 **1050 t/s**，18K token 预填充耗时从 28.6 秒骤减至 **17.1 秒（提速 40.2%）**；
+    * 扩大批处理至 `-b 8192` 将切分循环调度减少 70%，大幅削减内核上下文切换开销；
+  * **Windows 22 节点原生 REST API 远程热管理实战**：
+    * 深度解密 Unsloth Studio 的 FastAPI 架构体系，免远程桌面登录 Windows，通过 `/api/inference/load` 配合 `llama_extra_args` 实现动态热重载、参数穿透注入与显存释放；提供配套 Bash/PowerShell 脚本（`reload_windows_q8.sh` / `.ps1`）；
+  * **三机异构矩阵统一纳管为原生 Unsloth Studio**：
+    * **节点 1 (Ubuntu 21 - 快)**：`Q4_K_M` + Auto MTP，生成速度 **41.79 tokens/s**，显存 20.8GB，担当统一默认 `local` 极速入口；
+    * **节点 2 (Windows 22 - 精)**：`Q8_0` 准无损，生成速度 **30.10 tokens/s**，显存 35.2GB，担当高精推理脑；
+    * **节点 3 (Omarchy 23 - 长)**：`Q4_K_M` 纯显存满血承载 **256K (262,144 Tokens)** 超长上下文，生成速度 **40.32 tokens/s (峰值 59.35 t/s)**，显存 24.9GB，担当终极长文本接盘专机；
+  * **LiteLLM 统一顶级模型 `local` 与动态级联智能溢出路由**：
+    * 提供顶级统一入口 `local`，通过 `context_window_fallbacks` 实现 128K $\to$ 256K 毫秒级自动溢出与多节点高可用容灾。
 * [**Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）**](./docs/07-本地AI与大模型网关/Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）.md)
   * **单一大脑中枢（SSOT）与统一数据流通路**：
     * 彻底解决知识图谱在图数据库与离线文件间的“双写漂移与孤岛裂化”，确立以 `Canonical KG` 为系统唯一法定写入源，所有操作首选落盘并触发 `sync_dispatcher.py` 增量多端分发；
