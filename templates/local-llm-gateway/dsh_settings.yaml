@@ -1,0 +1,28 @@
+agent-default-model:
+  model: local-auto
+  provider: local-gateway
+llm-deepseek:
+  apiKeyEnv: DEEPSEEK_API_KEY
+  baseURL: http://127.0.0.1:4000
+llm-pi-ai:
+  providers:
+    local-gateway:
+      api: openai-completions
+      apiKeyEnv: DEEPSEEK_API_KEY
+      baseURL: http://127.0.0.1:4000/v1
+      displayName: Local Gateway (LiteLLM Cluster)
+      models:
+      - contextWindow: 131072
+        id: local-auto
+        name: Local Auto (Fast 8K -> Precise 64K -> Infinite 256K)
+      - contextWindow: 131072
+        id: local-fast
+        name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 80 t/s)'
+      - contextWindow: 131072
+        id: local-precise
+        name: 'Node 2: Windows 22 高精版 (Q8_0 无损精度)'
+      - contextWindow: 262144
+        id: local-infinite
+        name: 'Node 3: Omarchy 23 满血长文本 (256K Context)'
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1

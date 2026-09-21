@@ -32,9 +32,9 @@
 
 ## 一、 现象复现与初始状态诊断
 
-在基于 Omarchy（Arch Linux）系统下，通过 SSL VPN（如深信服 EasyConnect / aTrust）接入办公内网，打开 Remmina 远程桌面客户端，直接在顶部快速连接框输入远程 Windows 主机 IP（如 `172.28.24.22`），选择 `RDP` 协议回车发起连接：
+在基于 Omarchy（Arch Linux）系统下，通过 SSL VPN（如深信服 EasyConnect / aTrust）接入办公内网，打开 Remmina 远程桌面客户端，直接在顶部快速连接框输入远程 Windows 主机 IP（如 `192.168.1.102`），选择 `RDP` 协议回车发起连接：
 
-* **表面现象**：连接窗口弹出，标题显示 `172.28.24.22`，中间显示 `Connecting to "172.28.24.22"...`，转圈动画持续旋转。
+* **表面现象**：连接窗口弹出，标题显示 `192.168.1.102`，中间显示 `Connecting to "192.168.1.102"...`，转圈动画持续旋转。
 * **异常特征**：
   * 无密码输入框弹出；
   * 无自签名证书信任确认框弹出；
@@ -51,16 +51,16 @@
 
 ```bash
 # 1. 测试 ICMP 连通性（注：Windows 默认开启防火墙会丢弃 ICMP Echo）
-ping -c 3 172.28.24.22
+ping -c 3 192.168.1.102
 # 结果：100% packet loss（符合 Windows 默认策略，不能作为端口断通的判定标准）
 
 # 2. 直接探测 Windows RDP 核心端口 3389 (TCP)
-nc -zvw 3 172.28.24.22 3389
+nc -zvw 3 192.168.1.102 3389
 ```
 
 **实测输出**：
 ```text
-Connection to 172.28.24.22 3389 port [tcp/ms-wbt-server] succeeded!
+Connection to 192.168.1.102 3389 port [tcp/ms-wbt-server] succeeded!
 ```
 说明：**VPN 路由完全正常，目标 Windows 宿主机的 3389 端口完全开放且可达！**
 
@@ -69,7 +69,7 @@ Connection to 172.28.24.22 3389 port [tcp/ms-wbt-server] succeeded!
 Remmina 的 RDP 协议后端由 FreeRDP 提供。为了搞清楚卡顿点，使用命令行客户端 `xfreerdp3` 打开详细追踪日志 (`/log-level:TRACE`) 发起认证测试：
 
 ```bash
-xfreerdp3 /v:172.28.24.22 /u:test /p:test /cert:ignore +auth-only /log-level:TRACE
+xfreerdp3 /v:192.168.1.102 /u:test /p:test /cert:ignore +auth-only /log-level:TRACE
 ```
 
 在追踪日志中捕获到了关键的时间戳与错误堆栈：
@@ -163,7 +163,7 @@ sudo sed -i '/^\[libdefaults\]/a \    dns_lookup_kdc = false\n    dns_lookup_rea
 修改后立即执行 `time xfreerdp3` 测试同一个远程主机的 NLA 响应耗时：
 
 ```bash
-time xfreerdp3 /v:172.28.24.22 /u:test /p:test /cert:ignore +auth-only
+time xfreerdp3 /v:192.168.1.102 /u:test /p:test /cert:ignore +auth-only
 ```
 
 **测试输出**：
@@ -186,9 +186,9 @@ sys	0m0.065s
 
 1. 打开 Remmina 主界面，点击左上角 **`+`（新建连接配置文件）**；
 2. **基本 (Basic) 设置**：
-   * **名称**：自定义（如 `Windows-172.28.24.22`）
+   * **名称**：自定义（如 `Windows-192.168.1.102`）
    * **协议**：`RDP - 远程桌面协议`
-   * **服务器 (Server)**：`172.28.24.22`
+   * **服务器 (Server)**：`192.168.1.102`
    * **用户名 (User name)**：Windows 本地用户名（如 `Administrator`）
    * **密码 (Password)**：对应登录密码
    * **域 (Domain)**：本地账户留空，域账户填对应域名
@@ -235,7 +235,7 @@ RDP 协议的虚拟显示器尺寸完全**由客户端协商时声明的缓冲�
 如果你更青睐轻量、高帧率的原生命令行工具，可以直接通过 `xfreerdp3` 直连，配合 GPU 硬件解码加速与自适应分辨率参数：
 
 ```bash
-xfreerdp3 /v:172.28.24.22 \
+xfreerdp3 /v:192.168.1.102 \
     /u:Administrator \
     /p:'YourPassword' \
     /cert:ignore \

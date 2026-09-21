@@ -43,7 +43,7 @@ if ! grep -q "tensaku-capture" "$LOCAL_LUA"; then
 -- the window under the pointer, F takes the whole screen, S switches to
 -- a scrolling capture. Replaces Omarchy's grim+slurp omarchy-capture-screenshot.
 hl.unbind("F1")
-o.bind("F1", "Screenshot", "/home/tom/.local/bin/tensaku-capture")
+o.bind("F1", "Screenshot", (os.getenv("HOME") or "") .. "/.local/bin/tensaku-capture")
 EOF
     echo "   [OK] F1 快捷键已写入 $LOCAL_LUA"
 else

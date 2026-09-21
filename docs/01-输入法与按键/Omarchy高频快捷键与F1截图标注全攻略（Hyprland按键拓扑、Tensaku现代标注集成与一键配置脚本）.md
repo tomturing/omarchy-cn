@@ -163,7 +163,7 @@ chmod +x ~/.local/bin/tensaku-capture
 ```lua
 -- 解绑可能存在的 F1 默认占用，绑定 Tensaku 批注截图
 hl.unbind("F1")
-o.bind("F1", "Screenshot", "/home/tom/.local/bin/tensaku-capture")
+o.bind("F1", "Screenshot", (os.getenv("HOME") or "") .. "/.local/bin/tensaku-capture")
 ```
 
 #### 步骤 3：确保 Hyprland 浮动窗口规则生效

@@ -39,14 +39,22 @@ omarchy-cn/
 │   │   └── README.md
 │   ├── 04-桌面环境与终端显示/                       # Hyprland 规则、Quickshell 顶栏实时网速、终端中文字符对齐
 │   │   ├── Omarchy顶部栏居中实时网速显示配置指南（Quickshell组件开发、流量无损采集与一键部署脚本）.md
+│   │   ├── Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）.md
+│   │   ├── Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）.md
 │   │   └── README.md
 │   ├── 05-Windows容器虚拟机/                        # Windows 11 容器虚拟机、网络隔离与性能极致精简
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
 │   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md
 │   │   └── README.md
-│   └── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑、Remmina RDP
-│       ├── Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md
-│       ├── Remmina与FreeRDP远程Windows桌面无响应排查与调优（NLA认证假死、krb5.conf超时根治与自适应分辨率实录）.md
+│   ├── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑、Remmina RDP
+│   │   ├── Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md
+│   │   ├── Remmina与FreeRDP远程Windows桌面无响应排查与调优（NLA认证假死、krb5.conf超时根治与自适应分辨率实录）.md
+│   │   └── README.md
+│   └── 07-本地AI与大模型网关/                        # LiteLLM统一网关、Langfuse可观测性、三算力节点与多Agent纳管
+│       ├── 本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）.md
+│       ├── Unsloth-Studio与Qwen3.8-27B双异构算力深度调优、基准评测与全量知识图谱抽取实战（RTX8000显存压榨、MTP多Token推测加速、跨平台TTFT吞吐对比与长文本抽取避坑）.md
+│       ├── 超融合三节点异构大模型集群极致调优指南（Ubuntu快-Windows精-Omarchy长、MTP投机加速80tps、256K满血上下文与LiteLLM动态路由实战）.md
+│       ├── Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）.md
 │       └── README.md
 ├── skills/                                        # Agent Skill 规范目录 (anthropics/skills)
 │   ├── omarchy-chinese-environment/               # 输入法与本地化全链路诊断技能
@@ -74,13 +82,19 @@ omarchy-cn/
 │   │       ├── rebuild_freerdp_with_patch.sh
 │   │       ├── optimize_windows_vm.ps1
 │   │       └── snapshot_vm_btrfs.sh
-│   └── omarchy-ssh-management/                    # SSH 运维管理与终端避坑技能
+│   ├── omarchy-ssh-management/                    # SSH 运维管理与终端避坑技能
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── check_ssh_env.sh
+│   │       ├── install_ssh_manager.sh
+│   │       ├── fix_windterm_prompt.sh
+│   │       └── set_windterm_icon.sh
+│   └── omarchy-local-llm-gateway/                 # 本地多Agent统一网关与全栈可观测性运维技能
 │       ├── SKILL.md
 │       └── scripts/
-│           ├── check_ssh_env.sh
-│           ├── install_ssh_manager.sh
-│           ├── fix_windterm_prompt.sh
-│           └── set_windterm_icon.sh
+│           ├── check_gateway_env.sh
+│           ├── test_agents.sh
+│           └── manage_gateway.sh
 └── templates/                                     # 开箱即用的配置文件片段
     ├── default.custom.yaml                        # Rime 全局方案补丁模板
     ├── rime_ice.custom.yaml                       # 雾凇拼音专属方案补丁模板
@@ -93,6 +107,10 @@ omarchy-cn/
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
     ├── tensaku-capture.sh                         # Tensaku F1 智能截图标注包装脚本
     ├── hypr_shortcuts_snippet.lua                 # Hyprland 常用快捷键与 F1 绑定模板
+    ├── scratchpad/                                # 独立专属 Scratchpad 智能调度与规则模板
+    │   ├── omarchy-toggle-scratchpad              # 智能进程检查、跨工作区规整与毫秒级弹出脚本
+    │   ├── windowrules_scratchpad.lua             # 专属窗口规则片段模板
+    │   └── bindings_scratchpad.lua                # 快捷键拓扑片段模板
     ├── netspeed/                                  # Quickshell 顶栏网速组件模板（单例锁+内存文件）
     │   ├── manifest.json
     │   ├── netspeed.sh
@@ -112,7 +130,18 @@ omarchy-cn/
     ├── ssh-manager                                # SSH Spotlight 快速启动脚本
     ├── hypr_ssh_windowrules.lua                   # SSH 浮动与 WindTerm 窗口规则模板
     ├── hypr_ssh_bindings.lua                      # Super+Shift+Enter 解绑与绑定模板
-    └── bashrc_windterm_fix.sh                     # WindTerm OSC 3008 提示符乱码拦截模板
+    ├── bashrc_windterm_fix.sh                     # WindTerm OSC 3008 提示符乱码拦截模板
+    ├── local-llm-gateway/                         # 本地统一大模型网关与可观测性模板库
+    │   ├── litellm_config.yaml                    # 双节点负载均衡、协议互转与参数剥离配置
+    │   ├── litellm.service                        # systemd 用户级守护进程服务单元
+    │   ├── langfuse-docker-compose.yml            # Langfuse v2 + PostgreSQL 单机极轻编排
+    │   └── link-litellm.sh                        # 符号链接一键纳管与热重载脚本
+    └── unsloth-studio/                            # Unsloth Studio 推理调优、压测与全景可视化模板库
+        ├── run_unsloth_studio.sh                  # Linux Quadro RTX 8000 硬件调优启动脚本
+        ├── unsloth-studio.service                 # Linux systemd 系统守护服务单元
+        ├── benchmark_llm.py                       # 跨平台流式 TTFT 与生成吞吐评测脚本
+        ├── generate_html_visualizer.py            # 知识图谱交互全景网页（vis-network）生成器
+        └── setup_windows_firewall.ps1             # Windows 8080 防火墙放行与 0.0.0.0 绑定修复脚本
 ```
 
 ---
@@ -151,6 +180,12 @@ omarchy-cn/
   * **`/proc/net/dev` 极轻量流式采集器**：0% CPU 占用无损差值计算，自动过滤虚拟接口与 Docker 网桥，精准锚定主物理网卡；
   * **交互式 QML 顶栏挂件**：单击即时切换简略模式（`12K 156K`）与精细模式（`↑ 12.4 KB/s ↓ 156.8 KB/s`），悬浮气泡查看接口名与累计网络总吞吐；
   * **`shell.json` 居中插槽优雅接入**：修改 `sections.center` 数组动态挂载插件，提供单行一键安装与平滑重启脚本。
+* [**Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）**](./docs/04-桌面环境与终端显示/Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）.md)
+  * **具名特殊工作区机制（Named Special Workspaces）**：彻底摆脱多应用混挤公共抽屉导致“一按全弹”的困局，为高频工具构建隔离的独立生命周期；
+  * **单键直达拓扑设计**：`Super + A`（Antigravity IDE）、`Super + X`（Google AI 独立无边框 WebApp）、`Super + Z`（Foot 专属便签终端）；
+  * **智能进程守护脚本（`omarchy-toggle-scratchpad`）**：未运行按键自启静默居中、已存在但迷航跨工作区自动规整入驻、就绪时毫秒级平滑切换弹出/隐藏；
+  * **通用临时抽屉双轨制**：完整保留系统原生 `Super + Alt + S`（存入）与 `Super + S`（呼出），支持手头任意临时弹窗随存随取。
+
 
 ### 3. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
 * [**Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md)
@@ -191,6 +226,53 @@ omarchy-cn/
     * 阐明 RDP 虚拟视口由客户端主导协商、Windows 服务端无法自主修改分辨率的技术原理；
     * 运用 Remmina 侧边栏“动态自适应分辨率”图标（左侧第 7 个）与 Profile 固化，实现任意拖动窗口无级平滑缩放与原生高清无黑边渲染；
     * 提供原生 `xfreerdp3` GPU 硬解加速（`/gfx:AVC444` + `/dynamic-resolution`）命令行极速直连指令。
+
+### 5. 本地AI与大模型网关 (`docs/07-本地AI与大模型网关`)
+* [**本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）**](./docs/07-本地AI与大模型网关/本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）.md)
+  * **多 Agent 凭据与算力治理**：使用 LiteLLM 统一网关收口管理海量上游 Key、模型别名与异构算力池（Linux Unsloth Q8_0 高精度节点 + Windows llama.cpp Q4_K 快速节点），为各 Agent 提供单一入口（`http://127.0.0.1:4000`）；
+  * **协议双向实时转译**：无缝支持 OpenAI Chat Completions 与 Anthropic Messages 协议互转，使 Claude Code、Pi、Hermes、Dify 等异构 Agent 零改造共享私有大模型与云端 API；
+  * **全链路深度可观测性满配（Langfuse v2 + Prometheus）**：
+    * 本地轻量自建 Langfuse v2 运维大屏（单机单容器 + Postgres 15），内存开销仅 400MB；
+    * 实时追踪记录每一个 Agent 的 Prompt 输入、思维链（Thinking）、流式 Token 耗时、首字延迟（TTFT）与物理节点路由标记；
+    * 暴露 `/metrics/` 端点对接 Prometheus/Grafana 监控指标；
+  * **四大核心生产陷阱根治实录**：
+    * **Claude Code 500 报错根治**：LiteLLM 剥离 `reasoning_effort: high`，关闭 Extended Thinking 消除 Unsloth/llama.cpp Jinja 模板崩溃；
+    * **Swagger UI 404 修复**：注入 `DOCS_URL=/docs` 环境变量恢复 `/docs` OpenAPI 交互文档；
+    * **Langfuse Python SDK 兼容性死锁**：降级锁定 `langfuse<3` 根治 `AttributeError: module 'langfuse' has no attribute 'version'`；
+    * **Arch Linux 密码超时与 Docker 免密**：配置 `/etc/sudoers.d/<username>-docker` 解决 fprintd 指纹超时阻塞 Docker 运维。
+* [**Unsloth-Studio与Qwen3.8-27B双异构算力深度调优、基准评测与全量知识图谱抽取实战（RTX8000显存压榨、MTP多Token推测加速、跨平台TTFT吞吐对比与长文本抽取避坑）**](./docs/07-本地AI与大模型网关/Unsloth-Studio与Qwen3.8-27B双异构算力深度调优、基准评测与全量知识图谱抽取实战（RTX8000显存压榨、MTP多Token推测加速、跨平台TTFT吞吐对比与长文本抽取避坑）.md)
+  * **显存与硬件级第一性原理调优**：
+    * 详尽推导 Quadro RTX 8000 48GB 显存容量分配，开启 8-bit KV Cache 量化（`--cache-type-k/v q8_0`）使显存开销直降 50%，充裕承载 64K 超长上下文；
+    * 踩坑修复新版 llama.cpp Flash Attention 语法陷阱（`--flash-attn on` 参数错位引发的死锁崩溃）；
+    * 原生激活 Qwen3 MTP 多 Token 投机采样（`--spec-type draft-mtp`），采样命中率达 **72%**，解码生成吞吐稳定在 **30.5 tokens/s**；
+  * **跨平台双节点性能实测基准（Linux Q8_0 vs Windows Q4_K_M）**：
+    * **TTFT 首字延迟**：短文本场景 Windows 节点仅 **0.50 秒**（秒级响应），极长文本（3K+ Tokens）Linux 节点凭借 16 核并发预填充反超（**3.6 秒**）；
+    * **生成吞吐**：Windows 端 Q4_K_M 受益于显存带宽减负达 **44.5 tokens/s**（快 50%），Linux 端 Q8_0 保证严密无损精度；
+  * **Windows 局域网网络与防火墙避坑**：
+    * 根治 Windows 端 Unsloth 默认仅绑定 `127.0.0.1` 导致的局域网无法访问假通假死，显式注入 `-H 0.0.0.0` 与多 Profile 防火墙放行；
+  * **Semantica 大规模知识图谱全量抽取实战**：
+    * 治理深度推理思维链（Thinking）耗尽输出配额导致的正文截断，注入 `chat_template_kwargs={"enable_thinking": False}` 直出标准 JSON；
+    * 从 23.8MB 故障手册（693段落）中全量沉淀 **414 个核心实体与 618 条因果关系拓扑**；
+    * 解决 yEd 初始打开节点横向重叠色条问题，提供一键有机布局方案与基于 `vis-network` 的交互式 Web 全景拓扑浏览器。
+* [**超融合三节点异构大模型集群极致调优指南（Ubuntu快-Windows精-Omarchy长、MTP投机加速80tps、256K满血上下文与LiteLLM动态路由实战）**](./docs/07-本地AI与大模型网关/超融合三节点异构大模型集群极致调优指南（Ubuntu快-Windows精-Omarchy长、MTP投机加速80tps、256K满血上下文与LiteLLM动态路由实战）.md)
+  * **三机异构矩阵与极致速度优先（第一优先级）**：
+    * **节点 1 (Ubuntu 21 - 快)**：主攻“快”，部署 `Qwen3.8-27B-Q4_K_M`，开启 Xeon 6244 CPU 锁频 Performance 模式与原生 MTP 多 Token 投机解码（双 Token 并发预测），实测打字速度打破物理显存带宽限制，飙升至 **75 ~ 88 tokens/s**（提升近 3 倍），首字延迟仅 **0.15 秒**；
+    * **节点 2 (Windows 22 - 精)**：主攻“精”，部署 `Qwen3.8-27B-Q8_0`（27.05GB 权重），承接深度架构设计、复杂数学逻辑与本体模型严谨推理，提供物理级无损浮点精度；
+    * **节点 3 (Omarchy 23 - 长)**：主攻“长”，部署 `Qwen3.8-27B-Q4_K_M` + Q4 KV Cache（显存仅占 16GB），实现单张 48G 卡在仅占 35GB 显存下**纯显存满血承载 256K (262,144 Tokens) 超长上下文**，彻底根除大模型阅读超长工程时的截断与 OOM 风险；
+  * **LiteLLM Context-Aware 动态级联智能路由**：
+    * 打造 `local-auto` 智能入口：短文本（$\le$ 8K）由 Ubuntu 极速响应，复杂任务转交 Windows 精准脑，超长 Prompt（$>$ 64K ~ 256K）通过 `context_window_fallbacks` 毫秒级自动无缝溢出至 Omarchy 256K 专机；
+  * **全栈 Agent 真实上下文校准与 Compaction 防爆自愈**：
+    * 深度解决 `dsh` 等 Agent 默认假定云端 1M 上下文导致物理截断的隐蔽缺陷，在 `~/.dsh/settings.yaml` 中精准锚定安全水位，驱动 Agent 在 50K~55K 时主动启动会话提炼压缩（Compaction）。
+* [**Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）**](./docs/07-本地AI与大模型网关/Semantica知识图谱生产级统一数据流系统实战指南（SSOT权威主库、Neo4j在线热库、Oxigraph嵌入式存储、闭环CRUD与三端可视化交互）.md)
+  * **单一大脑中枢（SSOT）与统一数据流通路**：
+    * 彻底解决知识图谱在图数据库与离线文件间的“双写漂移与孤岛裂化”，确立以 `Canonical KG` 为系统唯一法定写入源，所有操作首选落盘并触发 `sync_dispatcher.py` 增量多端分发；
+  * **双引擎在线/离线自适应存储**：
+    * **Neo4j 在线热库 (7474/7687)**：承接排障 Agent 毫秒级多跳 Cypher 查询与 Neo4j Browser 交互，为 414 个核心实体与 571 条关系建立全局唯一约束与业务分类动态打标；
+    * **Oxigraph 嵌入式库**：基于本地 RocksDB 的免服务三元组引擎，支持 1399 条标准 RDF 与 SPARQL 1.1 查询，零端口常驻，随拷随走离线交付；
+  * **闭环 CRUD 运维工具与三端可视化交互**：
+    * 提供 `pipeline/manage_kg.py` 实现微观单点增删改实时联动，记录 `changelog.jsonl` 审计流水；
+    * 提供 `pipeline/query_kg.py` 支持向上溯源诱因与向下发散解决方案；
+    * 统一拉起 Neo4j Browser、Semantica Explorer REST 工作台 (8002) 与轻量 Vis-Network 交互全景 (8088)。
 
 ---
 
@@ -261,19 +343,32 @@ bash skills/omarchy-voice-dictation/scripts/check_voxtype.sh
 bash skills/omarchy-voice-dictation/scripts/setup_voxtype.sh
 ```
 
+### 6. 本地多Agent统一网关与大模型算力池诊断与管理
+```bash
+# 全栈诊断 LiteLLM 服务、4000/3000 端口、双物理算力节点与各大 Agent 配置
+bash skills/omarchy-local-llm-gateway/scripts/check_gateway_env.sh
+
+# 端到端测试 Claude Code (Anthropic) 与 Pi/Hermes (OpenAI) 路由连通性并输出 Langfuse 追踪链接
+bash skills/omarchy-local-llm-gateway/scripts/test_agents.sh
+
+# 统一网关与可观测性便捷运维（status / restart / reload / logs / test / check）
+bash skills/omarchy-local-llm-gateway/scripts/manage_gateway.sh status
+```
+
 ---
 
 ## 🤖 作为 AI Agent Skill 使用 (Anthropics Skills 规范)
 
-本项目在 `skills/` 目录下严格遵循 [anthropics/skills](https://github.com/anthropics/skills) 标准构建了五套开箱即用的 Agent Skills：
+本项目在 `skills/` 目录下严格遵循 [anthropics/skills](https://github.com/anthropics/skills) 标准构建了六套开箱即用的 Agent Skills：
 1. **`omarchy-chinese-environment`**：负责输入法按键切换、终端默认英文、密码框纯英文直通与本地化排错；
 2. **`omarchy-desktop-tweaks`**：负责桌面快捷键拓扑管理、F1 Tensaku 现代截图标注集成以及 Quickshell 顶部栏居中实时网速挂件开发与部署；
 3. **`omarchy-voice-dictation`**：负责 100% 本地离线语音识别转文字（Whisper 普通话模型）、RTX 显卡 Vulkan 亚秒级硬件加速、解决蓝牙耳机静音幻觉与 Wayland 虚拟键盘防吞字；
 4. **`omarchy-windows-vm-tuning`**：负责 Windows 容器虚拟机网络隔离（Clash 防互扰、VPN 报错排查）、Windows 11 深度精简与 Btrfs 快照管理；
-5. **`omarchy-ssh-management`**：负责 SSH 天花板组合部署、快捷键冲突排查与 WindTerm systemd OSC 3008 乱码修复。
+5. **`omarchy-ssh-management`**：负责 SSH 天花板组合部署、快捷键冲突排查与 WindTerm systemd OSC 3008 乱码修复；
+6. **`omarchy-local-llm-gateway`**：负责本地多 Agent 统一 LLM 网关（LiteLLM）与全链路可观测性大屏（Langfuse v2）的生命周期管理、双算力节点故障切换、Claude Code Extended Thinking 500 崩溃修复与端到端连通性测试。
 
 当您使用 **Antigravity** 或 **Claude Code** 等智能编码助手时，可以直接引入该 Skill：
-* **自动识别**：当用户提出“快捷键配置”、“F1截图”、“顶栏网速”、“语音输入/听写”、“SSH管理”、“WindTerm乱码”、“平铺终端选型”、“输入法无法切换”或“虚拟机网络互扰”时，Agent 会自动激活对应 Skill；
+* **自动识别**：当用户提出“快捷键配置”、“F1截图”、“顶栏网速”、“语音输入/听写”、“SSH管理”、“WindTerm乱码”、“平铺终端选型”、“输入法无法切换”、“虚拟机网络互扰”或“本地大模型网关/可观测性配置”时，Agent 会自动激活对应 Skill；
 * **精准排查**：Agent 将调用内置诊断脚本扫描系统存在的冲突项并输出修复配方。
 
 ---

@@ -1,0 +1,40 @@
+{
+  "providers": {
+    "local-gateway": {
+      "baseUrl": "http://127.0.0.1:4000/v1",
+      "api": "openai-completions",
+      "apiKey": "sk-local-litellm-master-key",
+      "models": [
+        {
+          "id": "local-auto",
+          "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 128K)",
+          "reasoning": true
+        },
+        {
+          "id": "local-precise",
+          "name": "Node 2: Windows 22 高精版 (Q8_0 无损, 128K)",
+          "reasoning": true
+        },
+        {
+          "id": "local-infinite",
+          "name": "Node 3: Omarchy 23 满血长文本 (Q4_K_M, 256K)",
+          "reasoning": true
+        },
+        {
+          "id": "local-qwen",
+          "name": "Local Auto (Node 1 优先，自动故障切换)",
+          "reasoning": true
+        },
+        {
+          "id": "qwen-plus",
+          "name": "Aliyun DashScope Qwen Plus"
+        },
+        {
+          "id": "glm-5",
+          "name": "GLM-5",
+          "reasoning": true
+        }
+      ]
+    }
+  }
+}

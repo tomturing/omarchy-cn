@@ -1,0 +1,282 @@
+general_settings:
+  master_key: sk-local-litellm-master-key
+litellm_settings:
+  callbacks:
+  - prometheus
+  - langfuse
+  drop_params: true
+  json_logs: true
+  require_auth_for_metrics_endpoint: false
+  telemetry: false
+model_list:
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 131072
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
+  model_name: local-auto
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 131072
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
+  model_name: local-fast
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 131072
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
+  model_name: local-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 131072
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
+  model_name: node1-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 131072
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
+  model_name: qwen-fast
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    max_input_tokens: 131072
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_info:
+    max_tokens: 131072
+  model_name: local-precise
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    max_input_tokens: 131072
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_info:
+    max_tokens: 131072
+  model_name: node2-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    max_input_tokens: 131072
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_info:
+    max_tokens: 131072
+  model_name: qwen-q8
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.23:8888/v1
+    api_key: sk-unsloth-omarchy23-masterkey
+    drop_params: true
+    max_input_tokens: 262144
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 262144
+  model_name: local-infinite
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.23:8888/v1
+    api_key: sk-unsloth-omarchy23-masterkey
+    drop_params: true
+    max_input_tokens: 262144
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 262144
+  model_name: node3-qwen
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.23:8888/v1
+    api_key: sk-unsloth-omarchy23-masterkey
+    drop_params: true
+    max_input_tokens: 262144
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 262144
+  model_name: qwen-256k
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: claude-3-7-sonnet-20250219
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: claude-3-5-sonnet-20241022
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: claude-3-5-haiku-20241022
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/qwen-plus
+  model_name: qwen-plus
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/qwen3.5-plus
+  model_name: qwen3.5-plus
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/glm-5
+  model_name: glm-5
+- litellm_params:
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: os.environ/DASHSCOPE_API_KEY
+    drop_params: true
+    model: openai/kimi-k2.5
+  model_name: kimi-k2.5
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: deepseek-flash
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: deepseek-v4-flash
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: deepseek-v4-pro
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_name: deepseek-chat
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.22:8080/v1
+    api_key: sk-unsloth-win22-masterkey
+    drop_params: true
+    model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_name: deepseek-reasoner
+router_settings:
+  context_window_fallbacks:
+  - local-auto:
+    - local-precise
+    - local-infinite
+  - local-fast:
+    - local-infinite
+  - local-precise:
+    - local-infinite
+  - local-qwen:
+    - local-precise
+    - local-infinite
+  fallbacks:
+  - local-auto:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
+  - local-fast:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
+  - claude-3-7-sonnet-20250219:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-flash:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-v4-flash:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-v4-pro:
+    - node3-qwen
+    - node1-qwen
+  - deepseek-chat:
+    - node2-qwen
+    - node3-qwen
+  - deepseek-reasoner:
+    - node3-qwen
+    - node1-qwen
+  - qwen-plus:
+    - local-auto
+    - local-infinite
+  - local-qwen:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
+  routing_strategy: usage-based-routing

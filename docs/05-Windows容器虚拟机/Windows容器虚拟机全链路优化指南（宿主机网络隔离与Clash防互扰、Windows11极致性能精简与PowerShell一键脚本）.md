@@ -62,7 +62,7 @@ graph TD
 3. 拷贝到虚拟机持久化存储路径并赋予权限：
    ```bash
    sudo cp /path/to/win11x64.iso /var/lib/omarchy/windows/mounts/users/1000/storage/win11x64.iso
-   sudo chown tom:tom /var/lib/omarchy/windows/mounts/users/1000/storage/win11x64.iso
+   sudo chown $USER:$USER /var/lib/omarchy/windows/mounts/users/1000/storage/win11x64.iso
    ```
 4. 容器启动时检测到本地镜像，将直接进入解压安装。
 
@@ -203,7 +203,7 @@ Set-TimeZone -Id "China Standard Time"
 > 在 Linux 环境编辑创建的 `.bat` 文件如果保存为 **UTF-8 编码且含有多字节中文字符**（如中文括号 `（）` 或汉字），Windows 的 `cmd.exe` 在逐行解析时会将中文字节误读为命令行分隔符，导致报 `'理磁盘空间) ' is not recognized` 以及 `The system cannot find the path specified`，甚至导致后续系统服务禁用命令全部跳过！
 > **最佳实践**：批处理文件必须使用 **纯 ASCII 字符集** 配合 **Windows CRLF (`\r\n`) 换行**，并在脚本头部增加自动请求管理员权限（UAC）逻辑。
 
-已为您提炼为零失误、纯 ASCII、内置 UAC 自动提权的一键式批处理脚本 **[`deep_clean_vm.bat`](file:///home/tom/Projects/omarchy-cn/templates/deep_clean_vm.bat)**：
+已为您提炼为零失误、纯 ASCII、内置 UAC 自动提权的一键式批处理脚本 **[`deep_clean_vm.bat`](../../templates/deep_clean_vm.bat)**：
 
 ```cmd
 @echo off

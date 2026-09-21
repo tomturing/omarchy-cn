@@ -1,0 +1,43 @@
+#!/bin/bash
+# =================================================================
+# Omarchy 独立专属应用 Scratchpad 调度助手
+# 语法: omarchy-toggle-scratchpad <class-pattern> <special-name> <launch-cmd>
+# =================================================================
+
+CLASS_PAT="$1"
+SP_NAME="$2"
+shift 2
+LAUNCH_CMD="$*"
+
+if [ -z "$CLASS_PAT" ] || [ -z "$SP_NAME" ]; then
+  echo "Usage: omarchy-toggle-scratchpad <class-pattern> <special-name> <launch-command>"
+  exit 1
+fi
+
+# 严格边界保护：若未显式指定正则起止符，则默认严格全字匹配 ^...$
+# 彻底防止 "antigravity" 贪婪匹配到 "antigravity-ide" 等衍生窗口
+if [[ "$CLASS_PAT" != ^* ]] && [[ "$CLASS_PAT" != *\$ ]]; then
+  REGEX="^${CLASS_PAT}$"
+else
+  REGEX="$CLASS_PAT"
+fi
+
+# 1. 探测目标窗口地址（精确匹配 class）
+ADDR=$(hyprctl clients -j | jq -r --arg p "$REGEX" '.[] | select(.class | test($p; "i")) | .address' | head -n1)
+
+if [ -z "$ADDR" ]; then
+  # 窗口不存在：拉起启动命令，并在窗口初始化后呼出对应工作区
+  if [ -n "$LAUNCH_CMD" ]; then
+    eval "$LAUNCH_CMD &"
+    sleep 0.4
+    hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$SP_NAME\")" >/dev/null 2>&1 || hyprctl dispatch togglespecialworkspace "$SP_NAME"
+  fi
+else
+  # 窗口已存在：检查当前所在工作区，若不在专属 special 则先移入归位
+  CUR_WS=$(hyprctl clients -j | jq -r --arg a "$ADDR" '.[] | select(.address == $a) | .workspace.name')
+  if [ "$CUR_WS" != "special:$SP_NAME" ]; then
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"special:$SP_NAME\", window = \"address:$ADDR\", follow = false })" >/dev/null 2>&1
+  fi
+  # 切换弹出/隐藏状态
+  hyprctl dispatch "hl.dsp.workspace.toggle_special(\"$SP_NAME\")" >/dev/null 2>&1 || hyprctl dispatch togglespecialworkspace "$SP_NAME"
+fi
