@@ -12,6 +12,7 @@
 | [**物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）.md**](./物理键盘Shift键无响应底层排查与修复（XKB驱动拦截与Rime状态机冲突深度解析）.md) | • 剖析为何软件模拟按键有效，但真实物理键盘按 Shift 无反应<br>• Linux XKB 驱动层 `shift:both_capslock_cancel` 规则如何拦截吃掉 KeyUp 信号<br>• Rime `key_binder`（按下即触发）与 `ascii_composer`（状态机松开触发）机制对比 | **深度排查与原理解析**<br>适合遇到输入法怪异按键行为、深入理解 Linux 输入栈原理时查阅 |
 | [**Omarchy高频快捷键与F1截图标注全攻略（Hyprland按键拓扑、Tensaku现代标注集成与一键配置脚本）.md**](./Omarchy高频快捷键与F1截图标注全攻略（Hyprland按键拓扑、Tensaku现代标注集成与一键配置脚本）.md) | • Hyprland Lua 快捷键加载拓扑与 `hl.unbind` 冲突消除法则<br>• 汇总整理终端、IDE、浏览器、Spotlight 与工作区高频核心快捷键清单<br>• Tensaku 现代截图工具深度整合（F1 一键选区、Space 窗口吸附、箭头/方框/马赛克标注、Enter/复制自动关闭窗口并回写剪贴板） | **日常操作与效率进阶**<br>打造类微信/Snipaste无缝截图体验，避免快捷键重复触发冲突 |
 | [**Omarchy离线语音输入识别配置指南（Voxtype与Whisper普通话模型、RTX显卡GPU加速及剪贴板直通）.md**](./Omarchy离线语音输入识别配置指南（Voxtype与Whisper普通话模型、RTX显卡GPU加速及剪贴板直通）.md) | • 100% 本地离线语音识别转文字（Whisper 普通话模型）<br>• 破解蓝牙耳机 A2DP/HFP 切换延迟引发的静音幻觉（"请按赞、订阅、转发"）<br>• 解决 Wayland 虚拟键盘事件丢失与吞字问题（`mode = "paste"` 剪贴板直通）<br>• NVIDIA RTX 2060 6GB 显存分配策略与 Vulkan 亚秒级硬件加速 | **智能语音输入必备**<br>提供 Super+Ctrl+X 切换与 F9 对讲机级语音转文字实操指南 |
+| [**Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）.md**](./Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）.md) | • 彻底根治退格删到首字光标跳行首（Monaco/Electron 时序脱节）<br>• 彻底解决敲回车或空格误吞既有文字与 40次/秒击键 IPC 阻塞卡顿<br>• 解密 Wayland 惰性光标上报导致首字候选框漂移在左侧的底层物理机理<br>• 悬浮弹窗纯英文失灵与 `Ctrl+Space` 强制就地极速唤醒<br>• 经典 UI 字体调大至 12pt 与首选候选词纯黑背景高对比度定制 | **输入体验与疑难排查必备**<br>彻底攻克 Wayland 桌面下拼音输入法跳跃、误吞与排版漂移顽疾 |
 
 ---
 

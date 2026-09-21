@@ -1,0 +1,14 @@
+[Unit]
+Description=Semantica Knowledge Graph Pipeline Services
+After=network.target docker.service
+
+[Service]
+Type=forking
+WorkingDirectory=/home/tom/Projects/semantica
+ExecStart=/bin/bash /home/tom/Projects/semantica/pipeline/serve_all.sh start
+ExecStop=/bin/bash /home/tom/Projects/semantica/pipeline/serve_all.sh stop
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
