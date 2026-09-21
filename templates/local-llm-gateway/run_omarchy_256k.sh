@@ -1,34 +1,31 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # run_omarchy_256k.sh - 节点 3 (Omarchy Arch Linux) 256K 满血长文本启动脚本
+# 运行环境: Unsloth Studio (Arch Linux 官方最佳实践原生安装)
 # 硬件要求: Quadro RTX 8000 (48GB) + 64GB 内存
-# 显存核算: 模型 Q4_K_M (16GB) + 256K Q4 KV Cache (16GB) + 缓冲 (3GB) = 35GB (剩余 13GB)
+# 核心机制: 原生 Auto MTP 投机加速 (内置 blk.64.nextn 预测层)
+# 上下文规格: 256K (262,144 Tokens 满血), Q4_0 KV Cache
+# 实测性能: 生成速度 40.32 tokens/s (短文本峰值 59.35 t/s), 显存占用 22.9 GB (余量 25.2 GB)
 # ==============================================================================
 
-set -euo pipefail
+set -e
 
-MODEL_PATH="/opt/models/Qwen3.8-27B-Q4_K_M.gguf"
-PORT=9999
-HOST="0.0.0.0"
+export PATH="/home/sangfor/.local/bin:/home/sangfor/.unsloth/studio/unsloth_studio/bin:/opt/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/sangfor/.local/bin"
+export LD_LIBRARY_PATH="/opt/cuda/lib64:"
+export CUDA_VISIBLE_DEVICES=0
 
-echo "=== 启动 Omarchy 256K 满血超长文本推理服务 (Port: ${PORT}) ==="
-
-# 确保大页内存开启
-if [ -f /sys/kernel/mm/transparent_hugepage/enabled ]; then
-    echo always | sudo tee /sys/kernel/mm/transparent_hugepage/enabled >/dev/null || true
-fi
-
-exec llama-server \
-  --model "${MODEL_PATH}" \
-  --host "${HOST}" \
-  --port "${PORT}" \
-  --ctx-size 262144 \
+exec /home/sangfor/.local/bin/unsloth studio run \
+  --model /home/sangfor/models/Qwen3.8-27B-UD-Q4_K_M.gguf \
+  --speculative-type auto \
+  -H 0.0.0.0 \
+  -p 8888 \
+  --parallel 1 \
+  --max-seq-length 262144 \
+  --gpu-memory-mode manual \
   --cache-type-k q4_0 \
   --cache-type-v q4_0 \
-  --gpu-layers 999 \
-  --flash-attn on \
-  --cont-batching \
+  -ngl 99 \
   -t 8 \
-  -tb 14 \
+  -tb 16 \
   -b 2048 \
   -ub 512

@@ -1,35 +1,31 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # run_ubuntu_fast.sh - 节点 1 (Ubuntu 22.04) 极速响应嘴启动脚本
-# 硬件要求: Xeon 6244 (锁频 4.4GHz) + Quadro RTX 8000 (48GB)
-# 核心外挂: MTP 多 Token 投机预测 (--spec-type draft-mtp --spec-draft-n-max 2)
-# 性能指标: TTFT 0.15 秒，生成速度 75 ~ 88 tokens/s
+# 运行环境: Unsloth Studio (Ubuntu 原生)
+# 硬件要求: Xeon 6244 + Quadro RTX 8000 (48GB)
+# 核心机制: 原生 Auto MTP 投机加速 (内置 blk.64.nextn 预测层)
+# 上下文规格: 128K (131,072 Tokens), Q4_0 KV Cache
+# 实测性能: 生成速度 41.79 tokens/s, 显存占用 19.3 GB (余量 28.8 GB)
 # ==============================================================================
 
-set -euo pipefail
+set -e
 
-MODEL_PATH="/home/sangfor/models/Qwen3.8-27B-Q4_K_M.gguf"
-PORT=8888
-HOST="0.0.0.0"
+export PATH="/home/sangfor/.unsloth/studio/unsloth_studio/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/sangfor/.local/bin"
+export LD_LIBRARY_PATH="/usr/local/cuda/lib64:"
+export CUDA_VISIBLE_DEVICES=0
 
-echo "=== 优化宿主机 CPU 调频 (锁定 Performance) ==="
-if command -v cpupower >/dev/null 2>&1; then
-    sudo cpupower frequency-set -g performance >/dev/null || true
-fi
-
-echo "=== 启动 Ubuntu 极速 MTP 投机推理服务 (Port: ${PORT}) ==="
-exec llama-server \
-  --model "${MODEL_PATH}" \
-  --host "${HOST}" \
-  --port "${PORT}" \
-  --ctx-size 32768 \
-  --gpu-layers 999 \
-  --flash-attn on \
+exec /home/sangfor/.unsloth/studio/unsloth_studio/bin/unsloth studio run \
+  --model /home/sangfor/models/Qwen3.8-27B-UD-Q4_K_M.gguf \
+  --speculative-type auto \
+  -H 0.0.0.0 \
+  -p 8888 \
+  --parallel 1 \
+  --max-seq-length 131072 \
+  --gpu-memory-mode manual \
   --cache-type-k q4_0 \
   --cache-type-v q4_0 \
-  --spec-type draft-mtp \
-  --spec-draft-n-max 6 \
+  -ngl 99 \
   -t 8 \
-  -tb 14 \
+  -tb 16 \
   -b 2048 \
   -ub 512

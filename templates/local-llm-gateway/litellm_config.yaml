@@ -18,10 +18,10 @@ model_list:
     extra_body:
       chat_template_kwargs:
         enable_thinking: false
-    max_input_tokens: 32768
+    max_input_tokens: 131072
     model: openai/Qwen3.8-27B-UD-Q4_K_M
   model_info:
-    max_tokens: 32768
+    max_tokens: 131072
   model_name: local-auto
 - litellm_params:
     additional_drop_params:
@@ -32,7 +32,10 @@ model_list:
     extra_body:
       chat_template_kwargs:
         enable_thinking: false
+    max_input_tokens: 131072
     model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
   model_name: local-fast
 - litellm_params:
     additional_drop_params:
@@ -43,7 +46,10 @@ model_list:
     extra_body:
       chat_template_kwargs:
         enable_thinking: false
+    max_input_tokens: 131072
     model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
   model_name: local-qwen
 - litellm_params:
     additional_drop_params:
@@ -54,7 +60,10 @@ model_list:
     extra_body:
       chat_template_kwargs:
         enable_thinking: false
+    max_input_tokens: 131072
     model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
   model_name: node1-qwen
 - litellm_params:
     additional_drop_params:
@@ -65,7 +74,10 @@ model_list:
     extra_body:
       chat_template_kwargs:
         enable_thinking: false
+    max_input_tokens: 131072
     model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
   model_name: qwen-fast
 - litellm_params:
     additional_drop_params:
@@ -73,10 +85,10 @@ model_list:
     api_base: http://172.28.24.22:8080/v1
     api_key: sk-unsloth-win22-masterkey
     drop_params: true
-    max_input_tokens: 65536
+    max_input_tokens: 131072
     model: openai/unsloth/Qwen3.8-27B-GGUF
   model_info:
-    max_tokens: 65536
+    max_tokens: 131072
   model_name: local-precise
 - litellm_params:
     additional_drop_params:
@@ -84,7 +96,10 @@ model_list:
     api_base: http://172.28.24.22:8080/v1
     api_key: sk-unsloth-win22-masterkey
     drop_params: true
+    max_input_tokens: 131072
     model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_info:
+    max_tokens: 131072
   model_name: node2-qwen
 - litellm_params:
     additional_drop_params:
@@ -92,7 +107,10 @@ model_list:
     api_base: http://172.28.24.22:8080/v1
     api_key: sk-unsloth-win22-masterkey
     drop_params: true
+    max_input_tokens: 131072
     model: openai/unsloth/Qwen3.8-27B-GGUF
+  model_info:
+    max_tokens: 131072
   model_name: qwen-q8
 - litellm_params:
     additional_drop_params:
@@ -111,7 +129,10 @@ model_list:
     api_base: http://172.28.24.23:8888/v1
     api_key: sk-unsloth-omarchy23-masterkey
     drop_params: true
+    max_input_tokens: 262144
     model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 262144
   model_name: node3-qwen
 - litellm_params:
     additional_drop_params:
@@ -119,7 +140,10 @@ model_list:
     api_base: http://172.28.24.23:8888/v1
     api_key: sk-unsloth-omarchy23-masterkey
     drop_params: true
+    max_input_tokens: 262144
     model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 262144
   model_name: qwen-256k
 - litellm_params:
     additional_drop_params:
@@ -218,6 +242,9 @@ router_settings:
     - local-infinite
   - local-precise:
     - local-infinite
+  - local-qwen:
+    - local-precise
+    - local-infinite
   fallbacks:
   - local-auto:
     - node1-qwen
@@ -248,4 +275,8 @@ router_settings:
   - qwen-plus:
     - local-auto
     - local-infinite
+  - local-qwen:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
   routing_strategy: usage-based-routing
