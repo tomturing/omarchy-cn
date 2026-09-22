@@ -187,7 +187,7 @@ To prevent multiple scratchpad apps from toggling together ("all-in-one bundle")
    o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad '^antigravity$' antigravity 'uwsm-app -- antigravity'")
 
    hl.unbind("SUPER + X")
-   o.bind("SUPER + X", "Toggle Google AI", "omarchy-toggle-scratchpad '(chrome-gemini|google-ai)' gemini 'omarchy-launch-webapp https://gemini.google.com'")
+   o.bind("SUPER + X", "Toggle Google AI", "omarchy-toggle-scratchpad '^(chrome-gemini.*|google-ai.*)$' gemini 'omarchy-launch-webapp https://gemini.google.com'")
 
    o.bind("SUPER + Z", "Toggle Foot Terminal", "omarchy-toggle-scratchpad foot-scratchpad foot 'uwsm-app -- foot --app-id=foot-scratchpad'")
    ```
