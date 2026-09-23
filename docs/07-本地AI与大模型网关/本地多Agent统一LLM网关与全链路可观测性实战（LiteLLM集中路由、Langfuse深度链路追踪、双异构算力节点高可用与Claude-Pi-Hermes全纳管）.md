@@ -96,14 +96,16 @@ flowchart TD
 
 | 别名 | 路由目标 | 使用场景 |
 | :--- | :--- | :--- |
-| `local-auto` / `local-fast` / `local-qwen` | 节点 1 (Ubuntu · Q4_K_M · 极速) | 默认首选，日常编码 |
-| `local-precise` / `node2-qwen` | 节点 2 (Windows · Q8_0 · 高精度) | 需要高精度时强制指定 |
-| `local-infinite` / `node3-qwen` | 节点 3 (Omarchy · 256K · 超长上下文) | 全库分析、超长文档 |
-| `claude-3-7-sonnet-20250219` | → 节点 1 (映射别名) | Claude Code 透明无感接入 |
-| `claude-3-5-sonnet-20241022` | → 节点 2 (映射别名) | Claude Code 透明无感接入 |
-| `claude-3-5-haiku-20241022` | → 节点 1 (映射别名) | Claude Code 透明无感接入 |
+| **`local`** ⭐ | **全集群统一顶级入口** (默认首选节点 1，支持 128K 智能切 256K 溢出) | **所有 Agent 统一配置，日常默认首选** |
+| `local-auto` / `local-fast` / `local-qwen` | 节点 1 (Ubuntu · Q4_K_M · 极速) | 显式指定极速响应模式 |
+| `local-precise` / `node2-qwen` | 节点 2 (Windows · Q8_0 · 高精度) | 需要无损逻辑/架构推演时强制指定 |
+| `local-infinite` / `node3-qwen` | 节点 3 (Omarchy · 256K · 超长上下文) | 全库分析、超长文档抽取 |
+| `claude-3-7-sonnet-20250219` | → 节点 1 (映射别名) | Claude Code 协议兼容无感接入 |
+| `claude-3-5-sonnet-20241022` | → 节点 2 (映射别名) | Claude Code 协议兼容无感接入 |
+| `claude-3-5-haiku-20241022` | → 节点 1 (映射别名) | Claude Code 协议兼容无感接入 |
 
-> **Fallback 降级链**：`local-auto` → 节点 1 故障自动切节点 2 → 节点 2 故障兜底至云端。
+> **Fallback 降级与溢出链**：`local` / `local-auto` → 节点 1 故障自动切节点 2 → 超长上下文 (>128K) 自动溢出至节点 3 → 全部私有节点离线兜底至云端。
+
 
 ---
 
@@ -221,43 +223,70 @@ volumes:
 
 ## 六、全 Agent 统一接入配置实录（三节点版）
 
-> **核心设计原则**：所有 Agent 统一指向 LiteLLM 网关（`http://127.0.0.1:4000`），使用同一个 master key，网关侧集中管理上游路由与密钥轮换。
+> **核心设计原则**：所有 Agent 统一指向 LiteLLM 网关（`http://127.0.0.1:4000`），使用同一个 master key，**全量定义 4 大模型矩阵（`local-auto` / `local-fast` / `local-precise` / `local-infinite`）**，既满足智能自适应分流，又赋予用户绝对显式控制权。通过 `environment.d` 全局注入桌面图形会话，**确保点击桌面 APP 图标拉起后在交互页面中均可自由选择使用**。
 
-### 0. Shell 全局环境变量（所有 Agent 的兜底层）
+### 0. 环境变量持久化（所有 Agent 的底座兜底层）
 
-在 `~/.bashrc` 中注入统一环境变量，覆盖所有通过 Shell 启动的 CLI 工具：
-
+#### A. Shell 环境变量 (`~/.bashrc`)
+覆盖所有通过 Shell 启动的 CLI 工具：
 ```bash
 # ============================================================
-# 统一本地 LiteLLM 网关 —— 所有 Agent 使用同一套配置
+# 统一本地 LiteLLM 网关与 4 大模型矩阵
 # Base: http://127.0.0.1:4000 (OpenAI compat: /v1)
 # Master Key: sk-local-litellm-master-key
 # ============================================================
 export ANTHROPIC_BASE_URL="http://127.0.0.1:4000"
 export ANTHROPIC_API_KEY="sk-local-litellm-master-key"
-export ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"   # Claude Code 备用变量名
+export ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"
+export ANTHROPIC_MODEL="local-auto"                        # 智能分流中枢 (极速 128K -> 高精 -> 满血 256K)
+export ANTHROPIC_DEFAULT_SONNET_MODEL="local-auto"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="local-fast"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="local-precise"
 
-export OPENAI_BASE_URL="http://127.0.0.1:4000/v1"          # Codex / OpenAI SDK
+export OPENAI_BASE_URL="http://127.0.0.1:4000/v1"
 export OPENAI_API_KEY="sk-local-litellm-master-key"
+export OPENAI_MODEL="local-auto"
 
 export DEEPSEEK_BASE_URL="http://127.0.0.1:4000"
 export DEEPSEEK_API_KEY="sk-local-litellm-master-key"
 ```
 
-> **为什么需要多个变量名**：不同 Agent 读取的环境变量名不一致——Claude Code 优先读 `ANTHROPIC_AUTH_TOKEN`，OpenAI SDK 读 `OPENAI_API_KEY`，DeepSeek 客户端读 `DEEPSEEK_API_KEY`。统一写入后，新开任何 terminal 均自动继承。
+#### B. 桌面环境与 systemd 用户守护进程持久化 (`~/.config/environment.d/10-litellm-gateway.conf`)
+对于通过桌面快捷方式（.desktop）、Spotlight、Hyprland 快捷键拉起或由 systemd 托管的非终端进程，通过 systemd 环境生成器规范实现全局注入：
+```ini
+ANTHROPIC_BASE_URL="http://127.0.0.1:4000"
+ANTHROPIC_AUTH_TOKEN="sk-local-litellm-master-key"
+ANTHROPIC_API_KEY="sk-local-litellm-master-key"
+ANTHROPIC_MODEL="local-auto"
+ANTHROPIC_DEFAULT_SONNET_MODEL="local-auto"
+ANTHROPIC_DEFAULT_HAIKU_MODEL="local-fast"
+ANTHROPIC_DEFAULT_OPUS_MODEL="local-precise"
+OPENAI_BASE_URL="http://127.0.0.1:4000/v1"
+OPENAI_API_KEY="sk-local-litellm-master-key"
+OPENAI_MODEL="local-auto"
+DEEPSEEK_BASE_URL="http://127.0.0.1:4000"
+DEEPSEEK_API_KEY="sk-local-litellm-master-key"
+```
+生效并同步至用户空间：
+```bash
+systemctl --user import-environment ANTHROPIC_BASE_URL ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL OPENAI_BASE_URL OPENAI_API_KEY OPENAI_MODEL DEEPSEEK_BASE_URL DEEPSEEK_API_KEY
+```
 
-### 1. Claude Code 全纳管配置
+---
 
-编辑 `~/.claude/settings.json`：
+### 1. Claude Code 全纳管配置 (`~/.claude/settings.json`)
+
 ```json
 {
   "env": {
-    "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4000",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-3-5-haiku-20241022",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-3-7-sonnet-20250219",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-3-7-sonnet-20250219",
-    "ANTHROPIC_MODEL": "claude-3-7-sonnet-20250219",
+    "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
+    "ANTHROPIC_API_KEY": "sk-local-litellm-master-key",
+    "ANTHROPIC_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local-fast",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local-precise",
+    "MAX_THINKING_TOKENS": "0",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
   },
@@ -267,11 +296,11 @@ export DEEPSEEK_API_KEY="sk-local-litellm-master-key"
 }
 ```
 
-> `claude-3-7-sonnet-20250219` 等别名在 LiteLLM 中映射至节点 1/2，Claude Code 完全无感知地使用本地推理服务。
+> **交互说明**：Claude Code 默认路由使用 `local-auto`。在交互界面中，可输入 `/model` 自由指定 `local-fast`、`local-precise` 或 `local-infinite` 进行精准切流。
 
-### 2. Pi Agent 全纳管配置
+---
 
-**关键变更**：`models.json` 必须含 `apiKey` 字段，否则鉴权静默失败（Pi 不报错，但请求会被 LiteLLM 拒绝）。
+### 2. Pi Agent 全纳管配置与界面交互选择
 
 编辑 `~/.pi/agent/models.json`：
 ```json
@@ -282,35 +311,11 @@ export DEEPSEEK_API_KEY="sk-local-litellm-master-key"
       "api": "openai-completions",
       "apiKey": "sk-local-litellm-master-key",
       "models": [
-        {
-          "id": "local-auto",
-          "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 128K)",
-          "reasoning": true
-        },
-        {
-          "id": "local-precise",
-          "name": "Node 2: Windows 22 高精版 (Q8_0 无损, 128K)",
-          "reasoning": true
-        },
-        {
-          "id": "local-infinite",
-          "name": "Node 3: Omarchy 23 满血长文本 (Q4_K_M, 256K)",
-          "reasoning": true
-        },
-        {
-          "id": "local-qwen",
-          "name": "Local Auto (Node 1 优先，自动故障切换)",
-          "reasoning": true
-        },
-        {
-          "id": "qwen-plus",
-          "name": "Aliyun DashScope Qwen Plus"
-        },
-        {
-          "id": "glm-5",
-          "name": "GLM-5",
-          "reasoning": true
-        }
+        { "id": "local-auto", "name": "Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)", "reasoning": true },
+        { "id": "local-fast", "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)", "reasoning": true },
+        { "id": "local-precise", "name": "Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)", "reasoning": true },
+        { "id": "local-infinite", "name": "Node 3: Omarchy 23 满血长文本 (256K Context)", "reasoning": true },
+        { "id": "local", "name": "Local (兼容入口)", "reasoning": true }
       ]
     }
   }
@@ -325,11 +330,10 @@ export DEEPSEEK_API_KEY="sk-local-litellm-master-key"
   "defaultModel": "local-auto",
   "enabledModels": [
     "local-auto",
+    "local-fast",
     "local-precise",
     "local-infinite",
-    "local-qwen",
-    "qwen-plus",
-    "glm-5"
+    "local"
   ],
   "retry": {
     "enabled": true,
@@ -342,75 +346,93 @@ export DEEPSEEK_API_KEY="sk-local-litellm-master-key"
 }
 ```
 
-### 3. Hermes Agent 全纳管配置
+> **交互说明**：点击图标启动 Pi 后，在界面输入 `/model` 即可弹出包含 4 大模型的选择列表，随心切换！
 
-编辑 `~/.hermes/config.yaml` 中的 model 节：
+---
+
+### 3. Hermes Agent 与 Hermes Desktop 全纳管配置
+
+编辑 `~/.hermes/config.yaml`：
 ```yaml
 model:
-  default: local-qwen
+  default: local-auto
   provider: custom
   base_url: http://127.0.0.1:4000/v1
   api_key: sk-local-litellm-master-key
 ```
 
-在交互中可通过参数随时指定特定节点：
-```bash
-hermes chat --model local-auto     # 极速（节点 1）
-hermes chat --model local-precise  # 高精度（节点 2）
-hermes chat --model local-infinite # 256K 超长（节点 3）
-```
+无论通过桌面图标点击打开 `hermes-desktop` GUI，还是终端调用，均支持自由选择：
+* `local-auto`：默认自适应分流；
+* `local-fast`：直通极速出字节点 1；
+* `local-precise`：直通准无损高精节点 2；
+* `local-infinite`：直通 256K 超长上下文节点 3。
 
-### 4. dsh (Pi CLI) 全纳管配置
+---
+
+### 4. DeepSeek Harness (dsh) 桌面应用全纳管
 
 编辑 `~/.dsh/settings.yaml`：
 ```yaml
 agent-default-model:
   model: local-auto
   provider: local-gateway
+
+llm-deepseek:
+  apiKeyEnv: DEEPSEEK_API_KEY
+  baseURL: http://127.0.0.1:4000
+
 llm-pi-ai:
   providers:
     local-gateway:
       api: openai-completions
-      apiKeyEnv: DEEPSEEK_API_KEY    # 读取 ~/.bashrc 中统一注入的 master key
+      apiKeyEnv: DEEPSEEK_API_KEY
       baseURL: http://127.0.0.1:4000/v1
-      displayName: Local Gateway (LiteLLM 三节点集群)
+      displayName: Local Gateway (LiteLLM Cluster)
       models:
-        - contextWindow: 131072
-          id: local-auto
-          name: "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 80 t/s)"
-        - contextWindow: 131072
-          id: local-fast
-          name: "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 80 t/s)"
-        - contextWindow: 131072
-          id: local-precise
-          name: "Node 2: Windows 22 高精版 (Q8_0 无损精度)"
-        - contextWindow: 262144
-          id: local-infinite
-          name: "Node 3: Omarchy 23 满血长文本 (256K Context)"
+      - contextWindow: 131072
+        id: local-auto
+        name: 'Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)'
+      - contextWindow: 131072
+        id: local-fast
+        name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)'
+      - contextWindow: 131072
+        id: local-precise
+        name: 'Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)'
+      - contextWindow: 262144
+        id: local-infinite
+        name: 'Node 3: Omarchy 23 满血长文本 (256K Context)'
+      - contextWindow: 131072
+        id: local
+        name: 'Local (兼容入口)'
 ```
+
+> **交互说明**：点击桌面 `deepseek-harness.desktop` 图标启动后，界面顶部下拉菜单直接支持在 4 大模型间无缝切换。
+
+---
 
 ### 5. Antigravity（本机 AGY）
 
-Antigravity 通过 Shell 环境变量读取 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_API_KEY`，已在 `~/.bashrc` 统一注入，无需额外配置文件。
+Antigravity 通过桌面全局环境变量读取 `ANTHROPIC_BASE_URL`、`ANTHROPIC_API_KEY` 与 `ANTHROPIC_MODEL`，已在 `~/.config/environment.d/` 统一持久化为 `local-auto`，无需额外配置文件。
+
+---
 
 ### 6. Codex（ChatGPT Desktop）— 架构性限制说明
 
 > **⚠️ Codex 无法接入本地网关**：Codex 是 OpenAI 出品的 Electron GUI 应用，通过 OAuth 账号登录认证，不读取 `OPENAI_BASE_URL` 环境变量，不支持 `base_url` 重定向，属于产品架构封闭限制，无法绕过。
 
-已在 `~/.bashrc` 写入 `OPENAI_BASE_URL` 以覆盖命令行工具（如 `openai` Python SDK、`curl` 脚本等），但 Codex GUI 进程不受影响。
-
 ---
 
-## 七、各 Agent 接入状态汇总（最新）
+## 七、各 Agent 接入状态汇总（4 大核心模型矩阵最新版）
 
-| Agent | 接入方式 | Base URL | API Key | 默认模型 | 状态 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Claude Code** | `~/.claude/settings.json` env | `http://127.0.0.1:4000` | master-key | `claude-3-7-sonnet-20250219` | ✅ 已接入 |
-| **Pi Agent** | `~/.pi/agent/models.json` | `http://127.0.0.1:4000/v1` | master-key（直接写入） | `local-auto` | ✅ 已接入 |
-| **Hermes** | `~/.hermes/config.yaml` | `http://127.0.0.1:4000/v1` | master-key（直接写入） | `local-qwen` | ✅ 已接入 |
-| **dsh** | `~/.dsh/settings.yaml` | `http://127.0.0.1:4000/v1` | `$DEEPSEEK_API_KEY` env | `local-auto` | ✅ 已接入 |
-| **Antigravity** | Shell env (`~/.bashrc`) | `http://127.0.0.1:4000` | `$ANTHROPIC_API_KEY` env | `local-auto` | ✅ 已接入 |
-| **Codex** | ❌ 账号登录 (OAuth) | 不支持重定向 | OpenAI 账号 | gpt-5.x | ⚠️ 架构限制，无法接入 |
+| Agent | 启动方式 | Base URL | API Key | 默认模型 | 交互页面支持选择的模型 | 状态 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Claude Code** | 图标 / CLI | `http://127.0.0.1:4000` | master-key | **`local-auto`** | `local-auto`, `local-fast`, `local-precise`, `local-infinite` | ✅ 统一接入 |
+| **Pi Agent** | 图标 / CLI | `http://127.0.0.1:4000/v1` | master-key | **`local-auto`** | `/model` 下拉可选全部 4 个模型 | ✅ 统一接入 |
+| **Hermes Desktop**| APP 图标 | `http://127.0.0.1:4000/v1` | master-key | **`local-auto`** | 界面设置可选全部 4 个模型 | ✅ 统一接入 |
+| **dsh** | APP 图标 | `http://127.0.0.1:4000/v1` | `$DEEPSEEK_API_KEY` | **`local-auto`** | 顶部下拉菜单可选全部 4 个模型 | ✅ 统一接入 |
+| **Antigravity** | APP 图标 | `http://127.0.0.1:4000` | master-key | **`local-auto`** | 遵循系统全局注入模型 | ✅ 统一接入 |
+| **Codex** | 桌面应用 | 不支持重定向 | OpenAI 账号 | gpt-5.x | ⚠️ 架构限制，无法接入本地网关 | ⚠️ 架构限制 |
+
 
 ---
 
@@ -429,7 +451,14 @@ journalctl --user -u litellm -f
 curl -s -H "Authorization: Bearer sk-local-litellm-master-key" \
   http://localhost:4000/health | jq '{healthy_count, unhealthy_count}'
 
-# 4. 快速验证三节点全通
+# 4. 快速验证统一默认模型 local 全通
+curl -s http://localhost:4000/v1/chat/completions \
+  -H "Authorization: Bearer sk-local-litellm-master-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "local", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5}' \
+  | jq -r '.choices[0].message.content // .error.message'
+
+# 5. 快速遍历验证三节点物理直通
 for node in local-auto local-precise local-infinite; do
   echo -n "[$node] "
   curl -s http://localhost:4000/v1/chat/completions \
@@ -438,6 +467,10 @@ for node in local-auto local-precise local-infinite; do
     -d "{\"model\": \"$node\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" \
     | jq -r '.choices[0].message.content // .error.message'
 done
+
+# 6. Windows 22 节点 REST API 远程热管理与探活
+./templates/local-llm-gateway/reload_windows_q8.sh status   # 查询推理状态与显存
+./templates/local-llm-gateway/reload_windows_q8.sh load     # 远程热注入 -b 8192 -ub 2048
 ```
 
 ### 2. 常用故障排错速查表
@@ -446,7 +479,10 @@ done
 | :--- | :--- | :--- |
 | **Agent 请求报 Connection Refused** | LiteLLM 进程未启动或端口被占 | `systemctl --user restart litellm && journalctl --user -u litellm -n 30` |
 | **Claude 报错 Unexpected reasoning effort** | `config.yaml` 漏配参数丢弃 | 确认 `additional_drop_params: ["reasoning_effort"]` 已配置并重启网关 |
+| **Claude TTFT 首次响应等待时间长** | 18K Prompt 评估算力瓶颈 | 确认三节点已升级至 `-b 8192 -ub 2048`，预填充耗时缩短至 17 秒 |
+| **Windows 22 参数未生效或显存未变** | 未调用 REST API 热重载 | 执行 `./reload_windows_q8.sh load` 动态透传 `llama_extra_args` |
 | **Pi Agent 鉴权失败（静默）** | `models.json` 缺 `apiKey` 字段 | 检查并补全 `~/.pi/agent/models.json` 中的 `"apiKey"` |
 | **Langfuse 无新增调用记录** | API Key 绑定或依赖版本断裂 | 检查 `journalctl --user -u litellm` 是否有 Auth/Version 报错 |
 | **新 shell 环境变量未生效** | `.bashrc` 尚未 source | `source ~/.bashrc` 或重新开 terminal |
 | **私有节点响应变慢或显存用尽** | 切换到另一节点 | `pi --model local-precise` 或 `hermes chat --model local-infinite` |
+

@@ -22,6 +22,20 @@ model_list:
     model: openai/Qwen3.8-27B-UD-Q4_K_M
   model_info:
     max_tokens: 131072
+  model_name: local
+- litellm_params:
+    additional_drop_params:
+    - reasoning_effort
+    api_base: http://172.28.24.21:8888/v1
+    api_key: sk-unsloth-ubuntu21-masterkey
+    drop_params: true
+    extra_body:
+      chat_template_kwargs:
+        enable_thinking: false
+    max_input_tokens: 131072
+    model: openai/Qwen3.8-27B-UD-Q4_K_M
+  model_info:
+    max_tokens: 131072
   model_name: local-auto
 - litellm_params:
     additional_drop_params:
@@ -235,6 +249,9 @@ model_list:
   model_name: deepseek-reasoner
 router_settings:
   context_window_fallbacks:
+  - local:
+    - local-precise
+    - local-infinite
   - local-auto:
     - local-precise
     - local-infinite
@@ -246,6 +263,10 @@ router_settings:
     - local-precise
     - local-infinite
   fallbacks:
+  - local:
+    - node1-qwen
+    - node2-qwen
+    - node3-qwen
   - local-auto:
     - node1-qwen
     - node2-qwen

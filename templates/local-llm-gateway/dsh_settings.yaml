@@ -14,15 +14,18 @@ llm-pi-ai:
       models:
       - contextWindow: 131072
         id: local-auto
-        name: Local Auto (Fast 8K -> Precise 64K -> Infinite 256K)
+        name: 'Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)'
       - contextWindow: 131072
         id: local-fast
-        name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 80 t/s)'
+        name: 'Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)'
       - contextWindow: 131072
         id: local-precise
-        name: 'Node 2: Windows 22 高精版 (Q8_0 无损精度)'
+        name: 'Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)'
       - contextWindow: 262144
         id: local-infinite
         name: 'Node 3: Omarchy 23 满血长文本 (256K Context)'
+      - contextWindow: 131072
+        id: local
+        name: 'Local (兼容入口)'
 ui-onboarding:
   welcomeNoticeVersion: 2026-08-13.1

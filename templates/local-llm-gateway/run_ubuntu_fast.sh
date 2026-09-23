@@ -5,7 +5,8 @@
 # 硬件要求: Xeon 6244 + Quadro RTX 8000 (48GB)
 # 核心机制: 原生 Auto MTP 投机加速 (内置 blk.64.nextn 预测层)
 # 上下文规格: 128K (131,072 Tokens), Q4_0 KV Cache
-# 实测性能: 生成速度 41.79 tokens/s, 显存占用 19.3 GB (余量 28.8 GB)
+# 极限批处理: -b 8192 -ub 2048 (Prefill 算力拉满, TTFT 提速 40%)
+# 实测性能: 生成速度 41.79 tokens/s, 显存占用 20.8 GB (余量 25.2 GB)
 # ==============================================================================
 
 set -e
@@ -27,5 +28,5 @@ exec /home/sangfor/.unsloth/studio/unsloth_studio/bin/unsloth studio run \
   -ngl 99 \
   -t 8 \
   -tb 16 \
-  -b 2048 \
-  -ub 512
+  -b 8192 \
+  -ub 2048

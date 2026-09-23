@@ -7,22 +7,27 @@
       "models": [
         {
           "id": "local-auto",
-          "name": "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 128K)",
+          "name": "Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)",
+          "reasoning": true
+        },
+        {
+          "id": "local-fast",
+          "name": "Local Fast (节点 1: Ubuntu 21 极速版, 42 t/s)",
           "reasoning": true
         },
         {
           "id": "local-precise",
-          "name": "Node 2: Windows 22 高精版 (Q8_0 无损, 128K)",
+          "name": "Local Precise (节点 2: Windows 22 高精版, 30 t/s)",
           "reasoning": true
         },
         {
           "id": "local-infinite",
-          "name": "Node 3: Omarchy 23 满血长文本 (Q4_K_M, 256K)",
+          "name": "Local Infinite (节点 3: Omarchy 23 满血长文本, 256K)",
           "reasoning": true
         },
         {
-          "id": "local-qwen",
-          "name": "Local Auto (Node 1 优先，自动故障切换)",
+          "id": "local",
+          "name": "Local (兼容入口)",
           "reasoning": true
         },
         {

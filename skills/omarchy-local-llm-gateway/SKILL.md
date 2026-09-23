@@ -75,6 +75,19 @@ bash <skill_dir>/scripts/manage_gateway.sh {status|restart|reload|logs|test|chec
 In `~/.config/litellm/config.yaml`:
 ```yaml
 model_list:
+  # 统一顶级默认入口 (local)
+  - model_name: local
+    litellm_params:
+      model: openai/Qwen3.8-27B-UD-Q4_K_M
+      api_base: http://172.28.24.21:8888/v1
+      api_key: sk-unsloth-ubuntu21-masterkey
+      max_input_tokens: 131072
+      drop_params: true
+      additional_drop_params: ["reasoning_effort"]
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
+
   - model_name: local-auto
     litellm_params:
       model: openai/Qwen3.8-27B-UD-Q4_K_M
@@ -108,6 +121,7 @@ model_list:
 router_settings:
   routing_strategy: "usage-based-routing"
   context_window_fallbacks:
+    - local: ["local-precise", "local-infinite"]
     - local-auto: ["local-precise", "local-infinite"]
     - local-precise: ["local-infinite"]
 ```
@@ -116,8 +130,9 @@ router_settings:
 
 ## 5. Agent Context Calibration & Compaction Runbook
 
+All agents are consolidated to support the **4-Tier Model Matrix** (`local-auto`, `local-fast`, `local-precise`, `local-infinite`) and work seamlessly whether launched from CLI or **desktop APP icons** (via `~/.config/environment.d/10-litellm-gateway.conf`).
+
 ### 5.1 dsh Agent Calibration (`~/.dsh/settings.yaml`)
-To prevent `dsh` from assuming a 1M token cloud context and getting truncated at physical limits:
 ```yaml
 agent-default-model:
   provider: local-gateway
@@ -129,10 +144,16 @@ llm-pi-ai:
       baseURL: http://127.0.0.1:4000/v1
       models:
         - id: local-auto
-          name: "Local Auto (Fast 128K -> Precise 128K -> Infinite 256K)"
+          name: "Local Auto (智能分流: 极速 128K -> 高精 -> 满血 256K)"
+          contextWindow: 131072
+        - id: local-fast
+          name: "Node 1: Ubuntu 21 极速版 (Q4_K_M + MTP, 42 t/s)"
+          contextWindow: 131072
+        - id: local-precise
+          name: "Node 2: Windows 22 高精版 (Q8_0 准无损, 30 t/s)"
           contextWindow: 131072
         - id: local-infinite
-          name: "Local Infinite (Omarchy 256K)"
+          name: "Node 3: Omarchy 23 满血长文本 (256K Context)"
           contextWindow: 262144
 ```
 
@@ -142,10 +163,24 @@ llm-pi-ai:
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-local-litellm-master-key",
-    "ANTHROPIC_MODEL": "claude-3-7-sonnet-20250219",
+    "ANTHROPIC_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "local-auto",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "local-fast",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "local-precise",
     "MAX_THINKING_TOKENS": "0"
   }
 }
+```
+
+### 5.3 Pi Agent Calibration (`~/.pi/agent/settings.json` & `models.json`)
+Enabled models include `local-auto`, `local-fast`, `local-precise`, `local-infinite`. Users can switch via `/model` directly in the interactive UI.
+
+### 5.3 Windows 22 Node REST API Remote Management
+Manage Windows Unsloth Studio dynamically via REST API without Remote Desktop:
+```bash
+./templates/local-llm-gateway/reload_windows_q8.sh load    # Inject -b 8192 -ub 2048
+./templates/local-llm-gateway/reload_windows_q8.sh status  # Query inference engine status
+./templates/local-llm-gateway/reload_windows_q8.sh unload  # Release VRAM
 ```
 
 ---

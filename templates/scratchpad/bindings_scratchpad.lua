@@ -8,7 +8,7 @@ o.bind("SUPER + A", "Toggle Antigravity", "omarchy-toggle-scratchpad '^antigravi
 
 -- 2. Google AI 独立应用 (Super + X)
 hl.unbind("SUPER + X")
-o.bind("SUPER + X", "Toggle Google AI", "omarchy-toggle-scratchpad '(chrome-gemini|google-ai)' gemini 'omarchy-launch-webapp https://gemini.google.com'")
+o.bind("SUPER + X", "Toggle Google AI", "omarchy-toggle-scratchpad '^(chrome-gemini.*|google-ai.*)$' gemini 'omarchy-launch-webapp https://gemini.google.com'")
 
 -- 3. Foot 专属下拉便签终端 (Super + Z)
 o.bind("SUPER + Z", "Toggle Foot Terminal", "omarchy-toggle-scratchpad foot-scratchpad foot 'uwsm-app -- foot --app-id=foot-scratchpad'")
