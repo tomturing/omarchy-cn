@@ -1,0 +1,40 @@
+#!/bin/bash
+# ==============================================================================
+# aTrust 智能生命周期管理包装器
+# 放置路径：/usr/local/bin/atrust
+# 功能：
+# 1. 启动前自动调用 sangfor-mgr 解锁并拉起 aTrustDaemon.service
+# 2. 正常运行 aTrustTray 界面（在 Wayland / Hyprland 下支持标准 SNI 托盘）
+# 3. 退出时（关闭/退出托盘）通过 trap 自动停用服务、重新上锁（Mask）并清理孤儿进程
+# ==============================================================================
+
+set -o pipefail
+
+# 产生调用链路追踪 ID
+TRACE_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null | cut -c1-8 || tr -dc 'a-f0-9' < /dev/urandom | head -c 8)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] 正在解除锁定并启动 aTrust 守护服务..."
+
+cleanup() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] 捕捉到退出信号，正在停止并重新锁定 aTrust 服务..."
+    sudo /usr/local/bin/sangfor-mgr stop-atrust
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] aTrust 生命周期已安全结束。"
+}
+
+# 确保在退出、中断或被杀死时执行完整清理
+trap cleanup EXIT INT TERM
+
+# 提权启动并解锁
+sudo /usr/local/bin/sangfor-mgr start-atrust
+sleep 1
+
+_APPDIR=/usr/share/sangfor/aTrust
+_RUNNAME="${_APPDIR}/aTrustTray"
+export PATH="${_APPDIR}:${PATH}"
+export LD_LIBRARY_PATH="${_APPDIR}/uem/bin:${_APPDIR}/uem/lib:${_APPDIR}/resources/bin:${_APPDIR}/resources/lib:${LD_LIBRARY_PATH}"
+export ELECTRON_IS_DEV=0
+export ELECTRON_FORCE_IS_PACKAGED=true
+export NODE_ENV=production
+cd "${_APPDIR}"
+
+# 运行主界面与托盘守护（退出后触发 trap）
+"${_RUNNAME}" --no-sandbox --disable-gpu "$@"
