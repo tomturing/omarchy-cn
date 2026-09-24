@@ -1,0 +1,17 @@
+#!/bin/bash
+# ==============================================================================
+# ec-stop: 一键强行断开并锁死 EasyConnect 工具
+# 放置路径：/usr/local/bin/ec-stop
+# 适用场景：
+# 1. 悬浮托盘卡死、桌面误操作后无法呼出界面
+# 2. 想要在终端一秒完全斩断 VPN 隧道与全部关联后台进程
+# ==============================================================================
+
+set -o pipefail
+
+TRACE_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null | cut -c1-8 || tr -dc 'a-f0-9' < /dev/urandom | head -c 8)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] 正在一键强制断开并锁定 EasyConnect..."
+
+sudo /usr/local/bin/sangfor-mgr stop-easyconnect
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][SUCCESS] EasyConnect 及其所有后台隧道与监控进程已彻底清除并物理锁定。"

@@ -1,0 +1,47 @@
+#!/bin/bash
+# ==============================================================================
+# EasyConnect 智能生命周期管理包装器
+# 放置路径：/usr/local/bin/easyconnect
+# 功能与行为规范：
+# 1. 启动前自动调用 sangfor-mgr 解锁并拉起 EasyMonitor.service
+# 2. 正常拉起 EasyConnect 主界面与右上方独立的 32x32 悬浮托盘窗（TrayWindow）
+# 3. 关键交互保护：连接成功后用户关闭大窗口（点X）仅释放桌面空间，底层的
+#    TrayWindow（右上角蓝绿 S 图标）与 VPN 隧道保持连通，绝不误断网；
+# 4. 只有当用户右键点击悬浮托盘选择【退出】或调用 ec-stop 时，主程序才真正结束，
+#    触发 trap 进行全套底层隧道与服务停止、重新加锁（Mask）
+# ==============================================================================
+
+set -o pipefail
+
+# 产生调用链路追踪 ID
+TRACE_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null | cut -c1-8 || tr -dc 'a-f0-9' < /dev/urandom | head -c 8)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] 正在解锁并启动 EasyConnect 监控服务..."
+
+cleanup() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] 收到退出信号，正在切断隧道、终止监控并重新加锁..."
+    sudo /usr/local/bin/sangfor-mgr stop-easyconnect
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')][${TRACE_ID}][INFO] EasyConnect 已彻底清理完毕。"
+}
+
+# 注册信号清理陷阱
+trap cleanup EXIT INT TERM
+
+# 提权启动并解锁
+sudo /usr/local/bin/sangfor-mgr start-easyconnect
+sleep 1
+
+_APPDIR=/usr/share/sangfor/EasyConnect
+_RUNNAME="${_APPDIR}/EasyConnect"
+export PATH="${_APPDIR}:${PATH}"
+export LD_LIBRARY_PATH="${_APPDIR}/lib:${_APPDIR}/resources/lib64:${LD_LIBRARY_PATH}"
+export ELECTRON_IS_DEV=0
+export ELECTRON_FORCE_IS_PACKAGED=true
+export NODE_ENV=production
+cd "${_APPDIR}"
+
+# 启动 EasyConnect（登录后关闭大界面不退出，退出悬浮托盘才退出）
+if [[ $EUID -ne 0 ]] || [[ $ELECTRON_RUN_AS_NODE ]]; then
+    "${_RUNNAME}" "$@"
+else
+    "${_RUNNAME}" --no-sandbox "$@"
+fi

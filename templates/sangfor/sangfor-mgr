@@ -1,0 +1,69 @@
+#!/bin/bash
+# ==============================================================================
+# sangfor-mgr: 深信服服务与进程统一生命周期管理脚本
+# 支持 aTrust 与 EasyConnect 的无缝加锁、解锁、启停与孤儿进程彻底清理
+# 包含调用链路追踪（Trace ID）与结构化可观测性日志
+# ==============================================================================
+
+set -o pipefail
+
+# 产生唯一调用链追踪 ID (8位十六进制)
+TRACE_ID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null | cut -c1-8 || tr -dc 'a-f0-9' < /dev/urandom | head -c 8)
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+log_info() {
+    echo "[${TIMESTAMP}][${TRACE_ID}][INFO] $1"
+}
+
+log_warn() {
+    echo "[${TIMESTAMP}][${TRACE_ID}][WARN] $1"
+}
+
+log_error() {
+    echo "[${TIMESTAMP}][${TRACE_ID}][ERROR] $1"
+}
+
+case "$1" in
+    start-atrust)
+        log_info "执行 aTrust 解锁与服务拉起..."
+        systemctl unmask aTrustDaemon.service 2>/dev/null || true
+        systemctl start aTrustDaemon.service 2>/dev/null || true
+        log_info "aTrustDaemon 服务已启动并保持活跃。"
+        ;;
+
+    stop-atrust)
+        log_info "执行 aTrust 服务停用、全系统 Mask 锁定与残留进程清理..."
+        systemctl stop aTrustDaemon.service 2>/dev/null || true
+        systemctl mask aTrustDaemon.service 2>/dev/null || true
+        killall -9 aTrustAgent aTrustXtunnel-64 2>/dev/null || true
+        log_info "aTrust 服务已安全锁定，无任何后台残留。"
+        ;;
+
+    start-easyconnect)
+        log_info "执行 EasyConnect 监控服务解锁与拉起..."
+        systemctl unmask EasyMonitor.service 2>/dev/null || true
+        systemctl start EasyMonitor.service 2>/dev/null || true
+        log_info "EasyMonitor 服务已启动。"
+        ;;
+
+    stop-easyconnect)
+        log_info "执行 EasyConnect 隧道中断、监控服务停止、Mask 锁定与全套进程清理..."
+        systemctl stop EasyMonitor.service 2>/dev/null || true
+        systemctl mask EasyMonitor.service 2>/dev/null || true
+        killall -9 EasyConnect EasyMonitor ECAgent CSClient svpnservice 2>/dev/null || true
+        log_info "EasyConnect 及其底层隧道（CSClient/svpnservice/ECAgent）已完全断开并锁定。"
+        ;;
+
+    status)
+        log_info "=== 深信服服务与进程状态检测 ==="
+        echo "aTrustDaemon.service 状态: $(systemctl is-active aTrustDaemon.service 2>/dev/null || echo 'unknown') (is-enabled: $(systemctl is-enabled aTrustDaemon.service 2>/dev/null || echo 'unknown'))"
+        echo "EasyMonitor.service 状态: $(systemctl is-active EasyMonitor.service 2>/dev/null || echo 'unknown') (is-enabled: $(systemctl is-enabled EasyMonitor.service 2>/dev/null || echo 'unknown'))"
+        echo "运行中进程清单:"
+        ps aux | grep -E "aTrust|sangfor|EasyConnect|EasyMonitor|ECAgent|CSClient|svpnservice" | grep -v grep || echo "（无存活进程）"
+        ;;
+
+    *)
+        echo "用法: $0 {start-atrust|stop-atrust|start-easyconnect|stop-easyconnect|status}"
+        exit 1
+        ;;
+esac

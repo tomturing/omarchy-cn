@@ -36,8 +36,8 @@ omarchy-cn/
 │   │   ├── Winmaxle无线蓝牙双模键盘在Omarchy下的HID驱动剖析、陀螺仪飞鼠激活与Hyprland定制按键映射实战指南（XKB层KP_Add映射Super_R、专用快捷键绑定与零冲突调优）.md
 │   │   └── README.md
 │   ├── 02-中文字体与本地化/                         # 系统 Locale、思源字体优先级、Fontconfig 避坑
-│   │   └── README.md
-│   ├── 03-国产办公软件适配/                         # 企业微信 (WeCom)、微信、飞书、钉钉、WPS
+│   ├── 03-国产办公软件适配/                         # 企业微信 (WeCom)、微信、深信服 aTrust / EasyConnect VPN 治理
+│   │   ├── 深信服aTrust与EasyConnect自启治理、全生命周期管理与Wayland悬浮托盘交互实战指南.md
 │   │   └── README.md
 │   ├── 04-桌面环境与终端显示/                       # Hyprland 规则、Quickshell 顶栏实时网速、终端中文字符对齐
 │   │   ├── Omarchy顶部栏居中实时网速显示配置指南（Quickshell组件开发、流量无损采集与一键部署脚本）.md
@@ -91,13 +91,25 @@ omarchy-cn/
 │   │       ├── install_ssh_manager.sh
 │   │       ├── fix_windterm_prompt.sh
 │   │       └── set_windterm_icon.sh
-│   └── omarchy-local-llm-gateway/                 # 本地多Agent统一网关与全栈可观测性运维技能
+│   ├── omarchy-local-llm-gateway/                 # 本地多Agent统一网关与全栈可观测性运维技能
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── check_gateway_env.sh
+│   │       ├── test_agents.sh
+│   │       └── manage_gateway.sh
+│   └── omarchy-enterprise-vpn-governance/         # 企业级 VPN 自启治理与智能生命周期管理技能
 │       ├── SKILL.md
 │       └── scripts/
-│           ├── check_gateway_env.sh
-│           ├── test_agents.sh
-│           └── manage_gateway.sh
+│           ├── check_vpn_governance.sh
+│           └── apply_vpn_governance.sh
 └── templates/                                     # 开箱即用的配置文件片段
+    ├── sangfor/                                   # 深信服 VPN 治理与智能包装器模板
+    │   ├── sangfor-mgr                            # 统一服务启停、加锁解锁与进程深度清理脚本（含Trace ID）
+    │   ├── atrust                                 # aTrust 透明包装器
+    │   ├── easyconnect                            # EasyConnect 透明包装器（支持关闭大窗口不退网）
+    │   ├── ec-stop                                # 一键强制断开与锁死工具
+    │   ├── sangfor_sudoers                        # Sudoers 免密提权配置模板
+    │   └── install.sh                             # 一键自动化部署脚本
     ├── default.custom.yaml                        # Rime 全局方案补丁模板
     ├── rime_ice.custom.yaml                       # 雾凇拼音专属方案补丁模板
     ├── fcitx5.yaml                                # 桌面组件与密码应用级策略模板
@@ -194,7 +206,16 @@ omarchy-cn/
   * **通用临时抽屉双轨制**：完整保留系统原生 `Super + Alt + S`（存入）与 `Super + S`（呼出），支持手头任意临时弹窗随存随取。
 
 
-### 3. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
+### 3. 国产办公软件与企业级 VPN 适配 (`docs/03-国产办公软件适配`)
+* [**深信服 aTrust 与 EasyConnect 自启治理、全生命周期管理与 Wayland 悬浮托盘交互实战指南**](./docs/03-国产办公软件适配/深信服aTrust与EasyConnect自启治理、全生命周期管理与Wayland悬浮托盘交互实战指南.md)
+  * **第一性原理底层溯源**：深入拆解 `aTrustDaemon` 多进程 cgroup 派生机制与 `EasyMonitor` SUID root 隧道保活机制；
+  * **对抗性物理锁定（Systemd Masking）**：揭示普通 `disable` 会在系统全量升级（`pacman -Syu`）或 D-Bus 激活时失效的盲区，采用软链接指向 `/dev/null` 彻底防隐式拉起；
+  * **Wayland 悬浮托盘（Float Tray）逆向解析**：还原 EasyConnect 右上角 32x32 独立无边框置顶悬浮窗（蓝绿“S”图标）底层代码，提供右键退出与双击呼出核心交互；
+  * **大窗口关闭保护实录**：反编译 `app.asar` 验证 EasyConnect 登录后关闭大界面不退网、释放平铺工作区桌面的代码证据；
+  * **全自动无感包装器体系**：Sudoers 权限穿透、UUID 唯一调用链（Trace ID）日志可观测性，日常点击菜单秒启，退出时自动强杀所有孤儿进程并重新物理锁死；
+  * **全系统自启排查全景**：覆盖 Systemd 系统/用户服务、XDG Desktop 自启（Remmina 清理）、Docker 容器自愈策略（Neo4j/Langfuse）全链路方法论。
+
+### 4. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
 * [**Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md)
   * **宿主机硬件配额调优（根治 Swap 颠簸）**：针对 4 核 16G 宿主机，将虚拟机下调为 4 核 + 6GB 黄金配比，宿主机 Swap 占用从 3.1GB 归零（`0B`），可用内存翻倍（2.2G $\to$ 4.4G）；
   * **共享驱动器 `Z:` 盘红叉根因与自愈**：剖析公共 DNS 无法解析私有域名 `host.lan` 机理，提供全自动 hosts 注入与直连方案；
@@ -212,7 +233,7 @@ omarchy-cn/
   * **终极完美方案**：保留 `xfreerdp3` 100% 满屏无黑边渲染，注入官方单行补丁重编 `freerdp`，兼得极致显示与坚如磐石的剪贴板稳定性；
   * **开源协同**：向 Omarchy 官方提交 Issue [#11789](https://github.com/omacom/omarchy/issues/11789) 及追加实测反馈。
 
-### 4. 远程连接与运维工具 (`docs/06-远程连接与运维工具`)
+### 5. 远程连接与运维工具 (`docs/06-远程连接与运维工具`)
 * [**Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）**](./docs/06-远程连接与运维工具/Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md)
   * **平铺玩家天花板组合**：
     * 原生 Wayland Foot 终端 + `sshs`（读取标准 `~/.ssh/config`，实时模糊检索）+ Spotlight 居中浮动窗口（`960x600`）；
@@ -234,7 +255,7 @@ omarchy-cn/
     * 运用 Remmina 侧边栏“动态自适应分辨率”图标（左侧第 7 个）与 Profile 固化，实现任意拖动窗口无级平滑缩放与原生高清无黑边渲染；
     * 提供原生 `xfreerdp3` GPU 硬解加速（`/gfx:AVC444` + `/dynamic-resolution`）命令行极速直连指令。
 
-### 5. 本地AI与大模型网关 (`docs/07-本地AI与大模型网关`)
+### 6. 本地AI与大模型网关 (`docs/07-本地AI与大模型网关`)
 * [**本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）**](./docs/07-本地AI与大模型网关/本地多Agent统一LLM网关与全链路可观测性实战（LiteLLM集中路由、Langfuse深度链路追踪、双异构算力节点高可用与Claude-Pi-Hermes全纳管）.md)
   * **4 大核心模型矩阵全 Agent 纳管（支持桌面 APP 图标启动与界面自由选择）**：完整定义并暴露 `local-auto`（智能分流中枢）、`local-fast`（极速嘴）、`local-precise`（高精脑）、`local-infinite`（256K 满血长文本）。Pi Agent（`/model` 交互）、dsh（顶部下拉菜单）、Hermes Desktop、Claude Code 均可在交互界面自由选择切换；
   * **桌面级环境全局持久化 (`~/.config/environment.d/`)**：通过 systemd 环境生成器注入 `ANTHROPIC_MODEL="local-auto"` 等变量并导入用户会话，确保桌面图标启动的 GUI 进程与终端一致读取网关与模型矩阵；
