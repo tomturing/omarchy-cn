@@ -9,11 +9,13 @@
 1. 👉 [**深信服 aTrust 与 EasyConnect 自启治理、全生命周期管理与 Wayland 悬浮托盘交互实战指南**](./深信服aTrust与EasyConnect自启治理、全生命周期管理与Wayland悬浮托盘交互实战指南.md)
    * **核心要点**：
      * **第一性原理溯源**：深入拆解 `aTrustDaemon` 系统服务、多进程 cgroup 穿透派生与 `EasyMonitor` 监控常驻；
-     * **对抗性审查加固**：为什么普通 `disable` 会在升级时失效？采用 `systemctl mask` 物理锁定防死灰复燃；
+     * **EasyConnect 凭据持久化与真正一键自动登录**：逆向分析深信服 RC4 本地凭据加密机制（密钥 `sangfor_cn`，Salt `__user_psw_salt_for_local_conf__`），弥补官方 Linux 客户端密码不回填缺陷；
+     * **SPA 路由时延两阶段状态机**：解决 Electron Preload 静态求值夭折与 avalon.js 双向绑定同步时差，提供确定性状态防抖提交；
+     * **Loading resources 遮罩死锁熔断**：深度根治登录成功后 Promise 链条件死锁导致的资源加载转圈卡死与 11 秒主进程强弹弹窗；
+     * **本地环境报错根治与开机权限守护**：彻底纠正破坏性 mask 导致的 `Local environment contains error`，通过 `systemd-tmpfiles` 实现重启后权限自愈；
      * **Wayland 托盘异构深度解析**：aTrust 原生 SNI 托盘 vs EasyConnect 32x32 独立无边框桌面右上角悬浮托盘（TrayWindow）；
      * **大窗口关闭保护**：反编译验证 EasyConnect 登录后关闭大界面不退网、释放平铺工作区的底层代码证据；
-     * **全自动无感包装器**：Sudoers 权限穿透、Trace ID 调用链追踪日志，日常点击菜单秒启，退出时自动强杀孤儿进程并上锁；
-     * **全系统自启排查全景**：覆盖 Systemd 系统/用户服务、XDG Desktop 自启（如 Remmina）、Docker 重启策略（Neo4j/Langfuse）等。
+     * **全自动无感包装器**：Sudoers 权限穿透、Trace ID 调用链追踪日志，日常点击菜单秒启，退出时自动强杀孤儿进程并安全停用。
 
 ---
 
