@@ -40,18 +40,19 @@ case "$1" in
         ;;
 
     start-easyconnect)
-        log_info "执行 EasyConnect 监控服务解锁与拉起..."
+        log_info "执行 EasyConnect 监控服务解锁、开机自启保障与服务拉起..."
         systemctl unmask EasyMonitor.service 2>/dev/null || true
+        systemctl enable EasyMonitor.service 2>/dev/null || true
         systemctl start EasyMonitor.service 2>/dev/null || true
-        log_info "EasyMonitor 服务已启动。"
+        log_info "EasyMonitor 服务已启动并保持开机自启。"
         ;;
 
     stop-easyconnect)
-        log_info "执行 EasyConnect 隧道中断、监控服务停止、Mask 锁定与全套进程清理..."
+        log_info "执行 EasyConnect 隧道中断、监控服务停止与残留进程深度清理..."
         systemctl stop EasyMonitor.service 2>/dev/null || true
-        systemctl mask EasyMonitor.service 2>/dev/null || true
+        # 注意：此处切勿执行 systemctl mask，否则会导致下次开机或重启后服务无法自启，前端报 Local environment contains error
         killall -9 EasyConnect EasyMonitor ECAgent CSClient svpnservice 2>/dev/null || true
-        log_info "EasyConnect 及其底层隧道（CSClient/svpnservice/ECAgent）已完全断开并锁定。"
+        log_info "EasyConnect 及其底层隧道（CSClient/svpnservice/ECAgent）已完全断开并清理。"
         ;;
 
     status)

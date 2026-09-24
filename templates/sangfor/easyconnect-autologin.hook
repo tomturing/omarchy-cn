@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = easyconnect
+
+[Action]
+Description = [Omarchy] 自动为 EasyConnect 注入免密一键登录与防卡死加固补丁...
+When = PostTransaction
+Exec = /usr/local/bin/patch-easyconnect

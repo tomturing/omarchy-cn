@@ -209,10 +209,13 @@ omarchy-cn/
 ### 3. 国产办公软件与企业级 VPN 适配 (`docs/03-国产办公软件适配`)
 * [**深信服 aTrust 与 EasyConnect 自启治理、全生命周期管理与 Wayland 悬浮托盘交互实战指南**](./docs/03-国产办公软件适配/深信服aTrust与EasyConnect自启治理、全生命周期管理与Wayland悬浮托盘交互实战指南.md)
   * **第一性原理底层溯源**：深入拆解 `aTrustDaemon` 多进程 cgroup 派生机制与 `EasyMonitor` SUID root 隧道保活机制；
-  * **对抗性物理锁定（Systemd Masking）**：揭示普通 `disable` 会在系统全量升级（`pacman -Syu`）或 D-Bus 激活时失效的盲区，采用软链接指向 `/dev/null` 彻底防隐式拉起；
+  * **EasyConnect 凭据持久化与真正一键自动登录**：逆向深信服 RC4 凭据加密底层机制（密钥 `sangfor_cn`，Salt `__user_psw_salt_for_local_conf__`），弥补官方 Linux 客户端密码不回填缺陷；
+  * **SPA 路由时延两阶段状态机**：解决 Electron Preload 静态求值夭折与 avalon.js 双向绑定同步时差，提供确定性状态防抖提交；
+  * **Loading resources 遮罩死锁熔断**：深度根治登录成功后 Promise 链条件死锁导致的资源加载转圈卡死与 11 秒主进程强弹弹窗；
+  * **本地环境报错根治与开机权限守护**：彻底纠正破坏性 mask 导致的 `Local environment contains error`，通过 `systemd-tmpfiles` 实现重启后权限自愈；
   * **Wayland 悬浮托盘（Float Tray）逆向解析**：还原 EasyConnect 右上角 32x32 独立无边框置顶悬浮窗（蓝绿“S”图标）底层代码，提供右键退出与双击呼出核心交互；
   * **大窗口关闭保护实录**：反编译 `app.asar` 验证 EasyConnect 登录后关闭大界面不退网、释放平铺工作区桌面的代码证据；
-  * **全自动无感包装器体系**：Sudoers 权限穿透、UUID 唯一调用链（Trace ID）日志可观测性，日常点击菜单秒启，退出时自动强杀所有孤儿进程并重新物理锁死；
+  * **全自动无感包装器体系**：Sudoers 权限穿透、UUID 唯一调用链（Trace ID）日志可观测性，日常点击菜单秒启，退出时自动强杀所有孤儿进程并安全停用；
   * **全系统自启排查全景**：覆盖 Systemd 系统/用户服务、XDG Desktop 自启（Remmina 清理）、Docker 容器自愈策略（Neo4j/Langfuse）全链路方法论。
 
 ### 4. Windows 容器虚拟机调优 (`docs/05-Windows容器虚拟机`)
