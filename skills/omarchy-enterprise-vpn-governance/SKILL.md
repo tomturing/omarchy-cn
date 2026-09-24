@@ -67,7 +67,31 @@ bash <skill_dir>/scripts/apply_vpn_governance.sh
    * **退出**：
      * aTrust：右键状态栏托盘图标点击退出；
      * EasyConnect：右键屏幕右上角小“S”图标点击【退出】（或执行 `ec-stop`）；
-     * 程序退出后包装脚本立即接管，自动彻底断开、杀除底层 SUID 进程并重新物理锁死。
-2. **对抗性锁定保证**：
-   * 在软件未使用期间，`aTrustDaemon.service` 和 `EasyMonitor.service` 符号链接始终指向 `/dev/null`；
-   * 即使执行系统全量升级（`pacman -Syu`），包管理器也无法重新自动启用服务。
+     * 程序退出后包装脚本立即接管，自动彻底断开并清理底层残留进程。
+2. **EasyMonitor 开机自启守护（避免本地环境异常）**：
+   * 原厂 EasyConnect 启动时强制要求 root 权限的 `EasyMonitor` 监听本地环回端口（54530~54618）；
+   * 严禁无脑 `systemctl mask EasyMonitor.service`，否则开机重启后将出现红色错误 `Local environment contains error.`；
+   * 必须通过 `systemctl enable EasyMonitor.service` 保持开机自启。
+
+---
+
+## 5. EasyConnect 凭据持久化与 Loading 资源死锁熔断治理
+
+针对 Linux 版 EasyConnect 普遍存在的“无法记住密码”、“登录后一直转圈显示 Loading resources”以及“重启后配置丢失”三大顽疾，基于第一性原理彻底根治：
+
+### 核心物理/逻辑根因剖析：
+1. **密码持久化加密**：Linux 端使用 RC4 算法（密钥 `sangfor_cn`，Salt `__user_psw_salt_for_local_conf__`）加密保存密码到 `resources/conf/setting_<user>.json`，但前端官方代码未实现密码自动回填。
+2. **SPA 路由时延与状态机死锁**：认证窗口初始载入 `/portal`，随后通过 Hash 路由导航至 `#!/login`。若脚本在页面初期做静态 URL 判断，会导致监听器直接夭折；若缺乏两阶段状态机防抖，avalon.js 双向绑定尚未同步即触发提交会导致提交空密码。
+3. **Loading resources 遮罩死锁**：登录成功跳转至 `#!/service` 时，前端 Promise 链条在 `needGoDefault` 条件下未正常触发 resolve，导致 `common_loading` 模态遮罩永远 pending，且 `service.rsInit` 未激活导致页面被 `hide:!rsInit` 隐藏，11 秒后触发主进程超时弹窗。
+
+### 自动化治理与补丁工具：
+运行自动化补丁工具注入加固补丁：
+```bash
+# 默认使用配置向导或直接运行
+sudo patch-easyconnect
+# 或通过环境变量传入自定义网关与凭据
+sudo VPN_HOST="113.108.13.8:4430" VPN_USER="42187" VPN_PASS="xxx" patch-easyconnect
+```
+
+### 开机权限防篡改固化：
+通过 `/etc/tmpfiles.d/easyconnect.conf` 在每次系统开机时强制重置目录权限（0777）与凭据权限（0666），彻底解决重启后权限丢失问题。
