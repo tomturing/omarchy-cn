@@ -93,14 +93,15 @@ bash <skill_dir>/scripts/setup_shortcuts_and_f1.sh
      --early-exit \
      "$@"
 
-   # Post-exit auto-healing: Restore window focus (especially Xwayland/xfreerdp)
+   # Post-exit auto-healing: Restore window focus (supports Hyprland 0.56+ Lua & legacy)
    if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
-     hyprctl dispatch focuswindow "address:$prev_window" 2>/dev/null || true
+     hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
+       || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
    fi
 
-   # Reset Fcitx5 IME context to resolve orphaned focus deadlocks in remote apps (e.g. WeCom)
-   fcitx5-remote -c 2>/dev/null || true
-   fcitx5-remote -o 2>/dev/null || true
+   # Ensure host IME remains inactive (state 1 / direct pass-through),
+   # preventing Fcitx5 from intercepting VM/Xwayland keystrokes (e.g. WeCom typing deadlock)
+   fcitx5-remote -c >/dev/null 2>&1 || true
    ```
 
 3. **Tensaku Global Configuration (`~/.config/tensaku/config.toml`)**:

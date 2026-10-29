@@ -143,19 +143,20 @@ tensaku --capture \
 # ==============================================================================
 # 截图完成退出后的焦点与输入法自愈逻辑
 # ==============================================================================
-# 1. 强制将焦点归还给原窗口 (特别是 Xwayland / xfreerdp 窗口)
+# 1. 强制将焦点归还给原窗口 (同时兼容 Hyprland 0.56+ Lua 调度器与旧版语法)
 if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
-  hyprctl dispatch focuswindow "address:$prev_window" 2>/dev/null || true
+  hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
+    || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
 fi
 
-# 2. 唤醒并重置 Fcitx5 输入法上下文，打破 LayerShell 销毁后的悬空状态机
-fcitx5-remote -c 2>/dev/null || true
-fcitx5-remote -o 2>/dev/null || true
+# 2. 强制关闭输入法激活态 (确保处于 Inactive/透传状态 1)
+#    严禁调用 -o 强制激活，防止宿主机 Fcitx5 截获 Windows 虚拟机或 Xwayland 的物理击键导致死锁
+fcitx5-remote -c >/dev/null 2>&1 || true
 ```
 
 ### 4.2 加固 `xfreerdp3` 代理脚本
 
-更新 `/home/tom/.local/bin/xfreerdp3`，注入标准 UTF-8 语言环境变量，并显式指定剪贴板主选区与双向位图通道：
+更新 `/home/tom/.local/bin/xfreerdp3`，注入标准 UTF-8 语言环境变量、切断宿主机 XIM 输入法拦截，并显式指定剪贴板主选区与双向位图通道：
 ```bash
 #!/bin/bash
 REAL_XFREERDP="/usr/bin/xfreerdp3"
@@ -166,6 +167,9 @@ export LANG="${LANG:-zh_CN.UTF-8}"
 
 # 禁用 VAAPI 硬件解码, 强制软件 H264 回退(防黑屏)
 export LIBVA_DRIVER_NAME="${LIBVA_DRIVER_NAME:-software_ffmpeg_only}"
+
+# 输入法隔离: 虚拟机内部拥有原生输入栈，宿主机 XIM 严禁接入，防止按键吞噬与死锁
+export XMODIFIERS=""
 
 ARGS=()
 for arg in "$@"; do

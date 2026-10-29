@@ -6,6 +6,7 @@
 #    关闭 files-to:off 防止 Xwayland 文件拖拽通道挂起
 # 3. 图像格式支持: 保留富文本与位图 (CF_DIB) 传输通道，实现与 Wayland/X11 剪贴板互通
 # 4. 黑屏根治: 强制禁用 VAAPI, 令 ffmpeg 回退软件 H264 解码(防 Intel 核显黑屏)
+# 5. 输入法隔离加固: 导出 XMODIFIERS=""，切断 XIM 协议，防止宿主机 Fcitx5 截获并吞掉虚拟机击键
 # ==============================================================================
 
 REAL_XFREERDP="/usr/bin/xfreerdp3"
@@ -16,6 +17,9 @@ export LANG="${LANG:-zh_CN.UTF-8}"
 
 # 禁用 VAAPI 硬件解码, 强制软件 H264 回退(防黑屏)
 export LIBVA_DRIVER_NAME="${LIBVA_DRIVER_NAME:-software_ffmpeg_only}"
+
+# 输入法隔离: 虚拟机内部拥有原生输入栈，宿主机 XIM 严禁接入，防止按键吞噬与死锁
+export XMODIFIERS=""
 
 ARGS=()
 for arg in "$@"; do

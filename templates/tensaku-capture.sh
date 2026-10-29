@@ -1,19 +1,12 @@
 #!/bin/bash
 # ==============================================================================
 # Tensaku 现代批注截图包装器 (强化加固版 - 第一性原理防光标穿透与焦点自愈设计)
-# 交互特性：
-# 1. 拖拽自定义选区
-# 2. 空格键 (Space) 自动吸附当前鼠标悬停的窗口
-# 3. 按 F 键截取整个屏幕
-# 4. 按 S 键进入滚动长截图
-# 5. 选定后弹出标注界面（矩形、箭头、文字、马赛克、画笔）
-# 6. 回车 (Enter) 或点击复制按钮后，自动复制到剪贴板并存档，同时自动退出关闭截图窗口 (--early-exit)
-#
-# 稳定性与焦点自愈加固：
-# - 启动前强制重设 Wayland 合成器光标，消除 Xwayland (xfreerdp3) 文本输入工字型光标 (I-beam) 残留
-# - 显式指定 --initial-tool rectangle，杜绝因历史状态记忆导致的“都是输入光标”问题
-# - 绑定 --copy-command "wl-copy --type image/png"，确保向 Xwayland 和 Windows RDP 完整传递图像数据
-# - 退出后主动恢复底层原窗口焦点，并重置输入法状态机，彻底根治粘贴截图到 Windows (企业微信) 后按键无响应的死锁顽疾！
+# 1. 启动前强制唤醒合成器光标，消除 Xwayland (xfreerdp3) 文本输入工字型光标 (I-beam) 残留
+# 2. 强制指定 --initial-tool rectangle，杜绝误触发 text 批注导致全屏输入光标
+# 3. 显式绑定 --copy-command "wl-copy --type image/png"，确保剪贴板精准保留图像 MIME 格式
+# 4. 【核心自愈】Tensaku退出后：
+#    - 适配 Hyprland 0.56+ Lua 调度器，精准恢复底层原窗口焦点 (特别是 Xwayland/xfreerdp)
+#    - 强制关闭/重置 Fcitx5 激活态 (fcitx5-remote -c)，杜绝 LayerShell 退出后输入法悬挂拦截击键
 # ==============================================================================
 
 user_dirs="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
@@ -44,11 +37,12 @@ tensaku --capture \
 # ==============================================================================
 # 截图完成退出后的焦点与输入法自愈逻辑
 # ==============================================================================
-# 1. 强制将焦点归还给原窗口 (特别是 Xwayland / xfreerdp 窗口)
+# 1. 强制将焦点归还给原窗口 (同时兼容 Hyprland 0.56+ Lua dispatcher 与旧版语法)
 if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
-  hyprctl dispatch focuswindow "address:$prev_window" 2>/dev/null || true
+  hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
+    || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
 fi
 
-# 2. 唤醒并重置 Fcitx5 输入法上下文，打破 LayerShell 销毁后的悬空状态机
-fcitx5-remote -c 2>/dev/null || true
-fcitx5-remote -o 2>/dev/null || true
+# 2. 强制关闭输入法激活态 (确保处于 Inactive/透传状态 1)
+#    严禁调用 -o 强制激活，防止宿主机 Fcitx5 截获 Windows 虚拟机或 Xwayland 的物理击键
+fcitx5-remote -c >/dev/null 2>&1 || true
