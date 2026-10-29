@@ -50,23 +50,31 @@ flowchart TD
     WText -->|UTF-16LE 字节流错位| FmtConv
 ```
 
-### 2.1 文本乱码的物理事实：单字节当宽字符的“宽字符翻转”
-检查剪贴板历史文件 `~/.local/state/omarchy/clipboard-history.json` 中的实际记录：
-```json
-{
-  "type": "text",
-  "text": "桁祺㉀㈰⸶"
-}
+### 2.1 文本乱码的物理事实：单字节当宽字符与 XA_STRING 问号降级
+通过对剪贴板底层各 MIME 格式的字节流现场探查（`wl-paste --type <MIME>`），捕获到了最核心的物理事实：
+```text
+Type STRING: length=43, sample=b'OK??????????????????????????????skill???PR\n'
+Type text/plain;charset=utf-8: length=109, sample=b'OK，把上面一些列的调整和优化都按照仓库的规范要求...'
 ```
-通过反向工程还原字节序列：
-* `Ahzy@2026.` 的 ASCII 单字节十六进制为：`41 68 7a 79 40 32 30 32 36 2e`
-* 当 FreeRDP 或转换中间层错误地将这组单字节按照 **UTF-16LE（每两个字节构成一个宽字符）** 读入：
+* **问号乱码（`OK??????skill???PR`）根因**：
+  在 Linux X11 体系中，传统的文本原子是 `XA_STRING`（Atom 31）。根据 ICCCM 标准，`STRING` 规范定义为 ISO-8859-1（Latin-1 编码）。
+  在 FreeRDP 官方源码 `client/X11/xf_cliprdr.c` 中：
+  ```c
+  clientFormat->atom = XA_STRING;
+  clientFormat->formatToRequest = CF_TEXT;
+  clientFormat->localFormat = ClipboardGetFormatId(xfc->clipboard->system, mime_text_plain);
+  ```
+  当外部 Linux 应用（部分终端、Electron/Chromium 内核在 Xwayland 下的默认回退）向 X11 请求 `STRING` 目标时，FreeRDP 通过 WinPR 转换，所有超出 Latin-1 范围的中文字符**全部被强制替换为问号 `?` 占位符**！
+* **宽字符错位（`Ahzy@2026.` 变 `桁祺㉀㈰⸶`）根因**：
+  若 FreeRDP 或转换中间层错误地将单字节 ANSI/ASCII 按照 **UTF-16LE（每 2 字节合并为 1 个宽字符）** 读入：
   - `(0x41, 0x68)` $\rightarrow$ `U+6841` = **桁**
   - `(0x7a, 0x79)` $\rightarrow$ `U+797A` = **祺**
   - `(0x40, 0x32)` $\rightarrow$ `U+3240` = **㉀**
   - `(0x30, 0x32)` $\rightarrow$ `U+3230` = **㈰**
   - `(0x36, 0x2e)` $\rightarrow$ `U+2E36` = **⸶**
-* **根因**：FreeRDP 运行环境缺少标准 UTF-8 Locale 约束，且在与 Windows 协商 `CF_TEXT` 与 `CF_UNICODETEXT` 时发生格式错配，单字节流被无脑灌入宽字符转换器，导致不可逆乱码。
+* **解决之道（双轨制自愈架构）**：
+  1. 宿主机部署常驻事件驱动提纯器 `omarchy-clipboard-mojibake-healer`，只要捕获到 Xwayland 传出带问号的 `STRING`，瞬间从 `text/plain;charset=utf-8` 提取纯净中文流并广播回全桌面；
+  2. 虚拟机内部提供 `fix-clipboard.bat` 重启假死挂起的 `rdpclip.exe`。
 
 ### 2.2 F1 截图“都是输入光标”的双重根因
 1. **图像格式未完成向 DIB 桥接**：

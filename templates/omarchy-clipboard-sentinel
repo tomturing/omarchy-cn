@@ -1,0 +1,49 @@
+#!/bin/bash
+# ==============================================================================
+# Omarchy Clipboard Sentinel & Mojibake Healer (综合剪贴板守护与自愈服务)
+# 第一性原理设计：
+# 1. 监控因 Wayland 剪贴板 offer 挂起、管道写端未关导致的死锁 (超时 3 秒熔断)
+# 2. 启动并守护 omarchy-clipboard-mojibake-healer，实时消除从 Windows 复制时的中文问号乱码
+# 3. 确保跨系统文本与图像数据流全天候顺畅
+# ==============================================================================
+
+set -u
+
+readonly TIMEOUT_LIMIT=3
+readonly LOG_TAG="omarchy-clipboard-sentinel"
+
+logger -t "$LOG_TAG" "Omarchy Clipboard Sentinel started. Monitoring stuck clipboard pipelines & mojibake."
+
+# 启动并守护防乱码提纯器
+HEALER_BIN="/home/tom/.local/bin/omarchy-clipboard-mojibake-healer"
+if [[ -x "$HEALER_BIN" ]]; then
+  "$HEALER_BIN" &
+  HEALER_PID=$!
+  trap 'kill "$HEALER_PID" 2>/dev/null || true' EXIT
+fi
+
+while true; do
+  # 保证提纯器始终存活
+  if [[ -n "${HEALER_PID:-}" ]] && ! kill -0 "$HEALER_PID" 2>/dev/null; then
+    "$HEALER_BIN" &
+    HEALER_PID=$!
+  fi
+
+  while read -r pid etimes comm args; do
+    [[ -z "$pid" ]] && continue
+
+    if (( etimes >= TIMEOUT_LIMIT )); then
+      if [[ "$args" == *"--watch"* ]]; then
+        continue
+      fi
+
+      if [[ "$comm" == "wl-paste" || "$args" == *"capture.sh"* ]]; then
+        logger -t "$LOG_TAG" -p user.warn "Detected hung clipboard process PID $pid ($comm, elapsed: ${etimes}s): $args. Severing deadlock..."
+        kill -9 "$pid" 2>/dev/null || true
+        wl-copy --clear 2>/dev/null || true
+      fi
+    fi
+  done < <(ps -u "$UID" -o pid=,etimes=,comm=,args= | grep -E 'wl-paste|capture\.sh' | grep -v 'grep' | grep -v 'mojibake-healer' || true)
+
+  sleep 1
+done
