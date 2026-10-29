@@ -47,6 +47,7 @@ omarchy-cn/
 │   ├── 05-Windows容器虚拟机/                        # Windows 11 容器虚拟机、网络隔离与性能极致精简
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
 │   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md
+│   │   ├── Windows容器虚拟机性能与宿主机内存全栈治理实录（16GB宿主机防OOM与分级Swap架构、Btrfs碎片整理、6vCPU扩容与秒级唤醒工作流）.md
 │   │   └── README.md
 │   ├── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑、Remmina RDP
 │   │   ├── Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md
@@ -75,13 +76,14 @@ omarchy-cn/
 │   │   └── scripts/
 │   │       ├── check_voxtype.sh
 │   │       └── setup_voxtype.sh
-│   ├── omarchy-windows-vm-tuning/                 # Windows 虚拟机网络隔离与性能精简技能
+│   ├── omarchy-windows-vm-tuning/                 # Windows 虚拟机网络隔离、性能精简与宿主机内存治理技能
 │   │   ├── SKILL.md
 │   │   └── scripts/
 │   │       ├── check_vm_network.sh
 │   │       ├── enable_docker_bypass_clash.sh
 │   │       ├── fix_vm_freerdp_crash.sh
 │   │       ├── rebuild_freerdp_with_patch.sh
+│   │       ├── tune_host_memory_and_vm.sh
 │   │       ├── optimize_windows_vm.ps1
 │   │       └── snapshot_vm_btrfs.sh
 │   ├── omarchy-ssh-management/                    # SSH 运维管理与终端避坑技能
@@ -236,6 +238,13 @@ omarchy-cn/
   * **避坑大陷阱**：实测揭示盲目切换至 `sdl-freerdp3` 会在 Hyprland 1.25x 等分数缩放下产生严重的黑边（Letterboxing）与分辨率失真，阐明官方坚守 `xfreerdp3` 的底层缘由；
   * **终极完美方案**：保留 `xfreerdp3` 100% 满屏无黑边渲染，注入官方单行补丁重编 `freerdp`，兼得极致显示与坚如磐石的剪贴板稳定性；
   * **开源协同**：向 Omarchy 官方提交 Issue [#11789](https://github.com/omacom/omarchy/issues/11789) 及追加实测反馈。
+* [**Windows容器虚拟机性能与宿主机内存全栈治理实录（16GB宿主机防OOM与分级Swap架构、Btrfs碎片整理、6vCPU扩容与秒级唤醒工作流）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机性能与宿主机内存全栈治理实录（16GB宿主机防OOM与分级Swap架构、Btrfs碎片整理、6vCPU扩容与秒级唤醒工作流）.md)
+  * **IDE 窗口崩溃（代码 9）破除误区**：实测排除内核 OOM-Killer（`oom_kill=0`），精准定位系无上限 zram 膨胀（8.8GB 吞噬 ~2GB 物理 RAM）导致物理可用内存紧逼不足 500MB，从而触发 Chromium 渲染器看门狗主动 SIGKILL；
+  * **两级 Swap 脱水防卡顿架构**：落地 4GB 封顶 zram（`priority=100`）+ NVMe swapfile（`priority=10`）分级承接；持久化 THP 为 `madvise`、启用 KSM 内存同页去重并为桌面会话注入 `MemoryLow=1G` 软保护；
+  * **虚拟磁盘物理碎片治理**：针对 Btrfs CoW 导致的严重碎片化，通过在线碎片整理使 extents 暴降 92%（86.8万 $\to$ 6.9万），注入 QEMU `writeback` 缓存与 VirtIO Ballooning 动态气球设备；
+  * **开机 20 秒延迟第一性原理拆解**：解构 UEFI (4s) + Windows 11 内核冷启动 (15.4s) + RDP 认证 (1-2s) 的物理耗时下限；
+  * **6 vCPU 算力扩容与秒级唤醒**：分配 6 个虚拟核心充分释放 i5-1135G7 超线程性能（启动并发率达 364%）；确立以“系统休眠/挂起 (Suspend to RAM)”替代冷关机的极速工作流，实现开盖 0 秒秒开与时钟平滑防漂移；
+  * **快捷冷重启工具**：提供 `restart-windows` 自动化命令，实现假死会话优雅关闭、超时强杀、冷重启与 3389 端口智能轮询。
 
 ### 5. 远程连接与运维工具 (`docs/06-远程连接与运维工具`)
 * [**Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）**](./docs/06-远程连接与运维工具/Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md)
@@ -324,6 +333,9 @@ bash skills/omarchy-windows-vm-tuning/scripts/snapshot_vm_btrfs.sh restore
 
 # 一键为 FreeRDP 打入官方剪贴板单行补丁重编安装（彻底消除黑边与段错误闪退）
 bash skills/omarchy-windows-vm-tuning/scripts/rebuild_freerdp_with_patch.sh
+
+# 一键落地宿主机分级 Swap、THP 脱水、Btrfs 碎片整理与虚拟机 6vCPU / writeback 调优
+bash skills/omarchy-windows-vm-tuning/scripts/tune_host_memory_and_vm.sh
 ```
 
 ### 3. SSH 运维环境与终端乱码诊断
@@ -382,7 +394,7 @@ bash skills/omarchy-local-llm-gateway/scripts/manage_gateway.sh status
 1. **`omarchy-chinese-environment`**：负责输入法按键切换、终端默认英文、密码框纯英文直通与本地化排错；
 2. **`omarchy-desktop-tweaks`**：负责桌面快捷键拓扑管理、F1 Tensaku 现代截图标注集成以及 Quickshell 顶部栏居中实时网速挂件开发与部署；
 3. **`omarchy-voice-dictation`**：负责 100% 本地离线语音识别转文字（Whisper 普通话模型）、RTX 显卡 Vulkan 亚秒级硬件加速、解决蓝牙耳机静音幻觉与 Wayland 虚拟键盘防吞字；
-4. **`omarchy-windows-vm-tuning`**：负责 Windows 容器虚拟机网络隔离（Clash 防互扰、VPN 报错排查）、Windows 11 深度精简与 Btrfs 快照管理；
+4. **`omarchy-windows-vm-tuning`**：负责 Windows 容器虚拟机网络隔离（Clash 防互扰、VPN 报错排查）、宿主机分级 Swap 与防 OOM 看门狗强杀治理、Btrfs 碎片消除、6vCPU 扩容、Windows 11 深度精简与 Btrfs 快照管理；
 5. **`omarchy-ssh-management`**：负责 SSH 天花板组合部署、快捷键冲突排查与 WindTerm systemd OSC 3008 乱码修复；
 6. **`omarchy-local-llm-gateway`**：负责本地多 Agent 统一 LLM 网关（LiteLLM）与全链路可观测性大屏（Langfuse v2）的生命周期管理、双算力节点故障切换、Claude Code Extended Thinking 500 崩溃修复与端到端连通性测试。
 
