@@ -33,6 +33,7 @@ omarchy-cn/
 │   │   ├── Omarchy高频快捷键与F1截图标注全攻略（Hyprland按键拓扑、Tensaku现代标注集成与一键配置脚本）.md
 │   │   ├── Omarchy离线语音输入识别配置指南（Voxtype与Whisper普通话模型、RTX显卡GPU加速及剪贴板直通）.md
 │   │   ├── Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）.md
+│   │   ├── Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md
 │   │   ├── Winmaxle无线蓝牙双模键盘在Omarchy下的HID驱动剖析、陀螺仪飞鼠激活与Hyprland定制按键映射实战指南（XKB层KP_Add映射Super_R、专用快捷键绑定与零冲突调优）.md
 │   │   └── README.md
 │   ├── 02-中文字体与本地化/                         # 系统 Locale、思源字体优先级、Fontconfig 避坑
@@ -97,11 +98,16 @@ omarchy-cn/
 │   │       ├── check_gateway_env.sh
 │   │       ├── test_agents.sh
 │   │       └── manage_gateway.sh
-│   └── omarchy-enterprise-vpn-governance/         # 企业级 VPN 自启治理与智能生命周期管理技能
+│   ├── omarchy-enterprise-vpn-governance/         # 企业级 VPN 自启治理与智能生命周期管理技能
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── check_vpn_governance.sh
+│   │       └── apply_vpn_governance.sh
+│   └── omarchy-electron-wayland-ime/              # Electron 类 AI 客户端 Wayland IME 与退格跳行首根治技能
 │       ├── SKILL.md
 │       └── scripts/
-│           ├── check_vpn_governance.sh
-│           └── apply_vpn_governance.sh
+│           ├── diagnose_electron_ime.sh
+│           └── fix_electron_ime.sh
 └── templates/                                     # 开箱即用的配置文件片段
     ├── sangfor/                                   # 深信服 VPN 治理与智能包装器模板
     │   ├── sangfor-mgr                            # 统一服务启停、加锁解锁与进程深度清理脚本（含Trace ID）
@@ -117,6 +123,8 @@ omarchy-cn/
     ├── fcitx5-config                              # 全局配置模板（含 ActiveByDefault 与 TriggerKeys）
     ├── rime.conf                                  # Rime 独立会话隔离配置模板（解除全局会话共享）
     ├── punctuation.yaml                           # Windows 体验标点直出模板（零候选弹窗）
+    ├── electron-flags.conf                        # 通用 Electron Wayland IME 调优与 v1 协议防御模板
+    ├── electron-wrapper.sh                        # 通用 Electron 用户级高优先级包装脚本模板
     ├── bashrc_ime_snippet.sh                      # 终端默认英文与 sudo 包装 Hook 片段
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
     ├── tensaku-capture.sh                         # Tensaku F1 智能截图标注包装脚本
@@ -188,6 +196,12 @@ omarchy-cn/
   * **Wayland 惰性光标上报机理解密**：剖析大部分应用切换输入框后首字在屏幕左侧偏中、打出第一字后才瞬移吸附到光标的根本原因与应对策略；
   * **悬浮弹窗极速唤醒**：破解 Wayland 子表面 Inactive 状态下 Shift 切换失效问题，`Ctrl + Space` 就地一键激活拼音；
   * **经典 UI 字体与黑底高亮定制**：配置 12pt 精致清晰字号，打造首选候选词纯黑背景（`#000000`）配纯白高对比度文字定制主题，激活 `Ctrl + Alt + P` 动态热键。
+* [**Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）**](./docs/01-输入法与按键/Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md)
+  * **证伪“仅 Monaco 虚拟编辑器缺陷”假象**：在腾讯全新架构的 WorkBuddy 独立 Agent 桌面端实测，证实退格卡顿与光标暴跳行首为全 Electron 生态普遍性问题；
+  * **锁定 Chromium 138 C++ 状态机底层漏洞**：还原 `wayland_input_method_context.cc` 处理空预编辑（`preedit_string("")`）时过早复位状态机、导致硬件物理 Backspace 泄漏至前端 DOM 的全链路因果；
+  * **对抗性审查揭秘 Native ABI 阻断点**：深度剖析直接嫁接 Arch 原生 Electron 42 宿主为何遭遇 `@tencent/qimei-node` 闭源二进制与 Node ABI 136 致命崩溃；
+  * **`--wayland-text-input-version=1` 协议级靶向免疫**：从协议边界绕过 text-input-v3 内核状态机缺陷，实现 100% 原生行内预编辑（Inline Preedit）且退格光标坚如磐石；
+  * **生产级 AI 客户端调优全景**：覆盖 Qoder、CodeBuddy、WorkBuddy 的 Flags 注入、argv.json 运行时同步、高优先级用户包装器与 Hyprland 完全不透明规则。
 
 ### 2. 桌面环境与终端显示 (`docs/04-桌面环境与终端显示`)
 * [**Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）**](./docs/04-桌面环境与终端显示/Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）.md)
