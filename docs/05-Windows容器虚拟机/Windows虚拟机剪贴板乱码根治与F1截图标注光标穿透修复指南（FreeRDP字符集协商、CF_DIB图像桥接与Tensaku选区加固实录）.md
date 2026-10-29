@@ -112,13 +112,16 @@ copy-command = "wl-copy --type image/png"
 ```
 
 #### 2. 更新 `~/.local/bin/tensaku-capture`
-增强合成器光标唤醒与初始矩形框选锁定：
+增强合成器光标唤醒、矩形锁定与截图完成退出后的**焦点/输入法双重自愈**（彻底根治企业微信粘贴图片后键盘按键无响应）：
 ```bash
 #!/bin/bash
 user_dirs="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
 [[ -f $user_dirs ]] && source "$user_dirs"
 dir="${OMARCHY_SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}}"
 mkdir -p "$dir"
+
+# 记录截图前当前聚焦窗口
+prev_window=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // empty')
 
 # 强制重设 Wayland 合成器光标为标准主题，防止宿主机光标被 Xwayland/RDP 窗口文本光标接管
 cursor_theme=$(gsettings get org.gnome.desktop.interface cursor-theme 2>/dev/null | tr -d "'")
@@ -127,7 +130,8 @@ if [[ -n "$cursor_theme" ]]; then
   hyprctl setcursor "$cursor_theme" "$cursor_size" 2>/dev/null || true
 fi
 
-exec tensaku --capture \
+# 启动 Tensaku 进行截图标注 (不使用 exec，确保退出后能执行收尾焦点自愈)
+tensaku --capture \
   --output-filename "$dir/tensaku-$(date +%Y-%m-%d_%H-%M-%S).png" \
   --actions-on-enter save-to-clipboard \
   --save-after-copy \
@@ -135,6 +139,18 @@ exec tensaku --capture \
   --copy-command "wl-copy --type image/png" \
   --early-exit \
   "$@"
+
+# ==============================================================================
+# 截图完成退出后的焦点与输入法自愈逻辑
+# ==============================================================================
+# 1. 强制将焦点归还给原窗口 (特别是 Xwayland / xfreerdp 窗口)
+if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
+  hyprctl dispatch focuswindow "address:$prev_window" 2>/dev/null || true
+fi
+
+# 2. 唤醒并重置 Fcitx5 输入法上下文，打破 LayerShell 销毁后的悬空状态机
+fcitx5-remote -c 2>/dev/null || true
+fcitx5-remote -o 2>/dev/null || true
 ```
 
 ### 4.2 加固 `xfreerdp3` 代理脚本
