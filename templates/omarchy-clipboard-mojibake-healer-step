@@ -1,0 +1,22 @@
+#!/bin/bash
+# ==============================================================================
+# Omarchy 剪贴板单步提纯器 (由 wl-paste --watch 直接调度，零缓冲延迟)
+# ==============================================================================
+
+types=$(wl-paste --list-types 2>/dev/null || true)
+
+# 仅当同时存在 STRING 和 text/plain;charset=utf-8 时检查
+if grep -qx "STRING" <<<"$types" && grep -qx "text/plain;charset=utf-8" <<<"$types"; then
+  # 提取 UTF-8 文本
+  utf8_text=$(timeout 0.5s wl-paste --type "text/plain;charset=utf-8" 2>/dev/null || true)
+  [[ -z "$utf8_text" ]] && exit 0
+
+  # 提取 STRING 文本
+  str_text=$(timeout 0.5s wl-paste --type "STRING" 2>/dev/null || true)
+
+  # 检查是否发生问号降级 (STRING 包含 ?? 且与 UTF-8 内容不同)
+  if [[ "$str_text" == *"???"* && "$str_text" != "$utf8_text" ]]; then
+    # 立即提纯并广播
+    printf "%s" "$utf8_text" | wl-copy
+  fi
+fi
