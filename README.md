@@ -45,6 +45,7 @@ omarchy-cn/
 │   │   ├── Omarchy独立应用专属弹出与隐藏配置指南（Hyprland具名特殊工作区、通用Scratchpad双轨制与智能拉起守护）.md
 │   │   └── README.md
 │   ├── 05-Windows容器虚拟机/                        # Windows 11 容器虚拟机、网络隔离与性能极致精简
+│   │   ├── Windows虚拟机剪贴板乱码根治与F1截图标注光标穿透修复指南（FreeRDP字符集协商、CF_DIB图像桥接与Tensaku选区加固实录）.md
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
 │   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md
 │   │   └── README.md
@@ -230,6 +231,11 @@ omarchy-cn/
     * 宿主机注入内核策略路由 `pref 8990`，强制将 Docker 虚拟机流量直通物理网卡路由表（main 表），并配置 systemd 开机持久化；
     * 宿主机容器编排层（`docker-compose.yml` / `daemon.json`）直接解耦纯净公网 DNS（`223.5.5.5` / `119.29.29.29`），从源头彻底根除 Fake-IP 冲突导致的外网超时假死（`ERR_TIMED_OUT`、微软语言包 `0x80240438`），实现虚拟机启动即用、无需在 Windows 敲命令；校正北京时间 UTC+8 消除企业微信 15 小时时差；
   * **Btrfs 秒级 CoW 快照备份**：利用写时复制特性，0.1 秒完成虚拟磁盘快照备份与还原，零额外物理磁盘空间占用。
+* [**Windows虚拟机剪贴板乱码根治与F1截图标注光标穿透修复指南（FreeRDP字符集协商、CF_DIB图像桥接与Tensaku选区加固实录）**](./docs/05-Windows容器虚拟机/Windows虚拟机剪贴板乱码根治与F1截图标注光标穿透修复指南（FreeRDP字符集协商、CF_DIB图像桥接与Tensaku选区加固实录）.md)
+  * **乱码根因解密**：追溯单字节 ASCII（如 `Ahzy@2026.`）被 FreeRDP 错当宽字符 UTF-16LE 解码产生 `桁祺㉀㈰⸶` 的物理机理，注入标准 UTF-8 环境变量约束；
+  * **光标穿透根治**：消除按 F1 截图在 Windows 虚拟机窗口移动时的 I-beam 文本光标残留，Tensaku 显式绑定 `initial-tool = "rectangle"` 并调用 `hyprctl setcursor` 唤醒合成器准星；
+  * **图像跨端桥接**：规避图片格式不兼容导致的 Windows 内部粘贴无响应（仅输入光标闪烁），加固 `--copy-command "wl-copy --type image/png"` 与 FreeRDP `/clipboard:use-selection:CLIPBOARD,direction-to:all,files-to:off` 参数，打通 Linux 到 Windows 的位图（CF_DIB）传输通道；
+  * **Windows 自愈脚本**：部署 `fix-clipboard.bat` 重启假死挂起的 `rdpclip.exe` 并清空剪贴板死锁句柄。
 * [**Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）**](./docs/05-Windows容器虚拟机/Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md)
   * **假死排查**：窗口瞬间消失并非虚拟机崩溃，后台 QEMU 进程依然存活运行；
   * **缺陷溯源**：`coredumpctl` 与 GDB 符号化定位 `freerdp 3.31.1` 的 `xf_cliprdr.c:396` 在格式遍历时非法越界，导致 SIGSEGV 段错误闪退；

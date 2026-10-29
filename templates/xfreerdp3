@@ -1,0 +1,29 @@
+#!/bin/bash
+# ==============================================================================
+# xfreerdp3 安全加固代理 (第一性原理设计)
+# 1. 字符集与编码加固: 导出标准 UTF-8 Locale (LC_ALL=C.UTF-8), 杜绝代码页降级与宽字符错位
+# 2. 剪贴板双向精准同步: 指定 use-selection:CLIPBOARD, 开启 direction-to:all, 
+#    关闭 files-to:off 防止 Xwayland 文件拖拽通道挂起
+# 3. 图像格式支持: 保留富文本与位图 (CF_DIB) 传输通道，实现与 Wayland/X11 剪贴板互通
+# 4. 黑屏根治: 强制禁用 VAAPI, 令 ffmpeg 回退软件 H264 解码(防 Intel 核显黑屏)
+# ==============================================================================
+
+REAL_XFREERDP="/usr/bin/xfreerdp3"
+
+# 统一字符集环境为标准 UTF-8，防止剪贴板文本在 ANSI 与 UTF-16 宽字符转换时发生字节错位
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export LANG="${LANG:-zh_CN.UTF-8}"
+
+# 禁用 VAAPI 硬件解码, 强制软件 H264 回退(防黑屏)
+export LIBVA_DRIVER_NAME="${LIBVA_DRIVER_NAME:-software_ffmpeg_only}"
+
+ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "/clipboard" || "$arg" == "/clipboard:"* ]]; then
+    ARGS+=("/clipboard:use-selection:CLIPBOARD,direction-to:all,files-to:off")
+  else
+    ARGS+=("$arg")
+  fi
+done
+
+exec "$REAL_XFREERDP" "${ARGS[@]}"
