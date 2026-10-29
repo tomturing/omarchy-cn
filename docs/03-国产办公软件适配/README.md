@@ -17,6 +17,15 @@
      * **大窗口关闭保护**：反编译验证 EasyConnect 登录后关闭大界面不退网、释放平铺工作区的底层代码证据；
      * **全自动无感包装器**：Sudoers 权限穿透、Trace ID 调用链追踪日志，日常点击菜单秒启，退出时自动强杀孤儿进程并安全停用。
 
+2. 👉 [**Wayland 下 Electron 与 AI 客户端中文输入法退格跳行首深度剖析与根治指南（Qoder、CodeBuddy 与全新 WorkBuddy 全适配）**](../01-输入法与按键/Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md)
+   * **核心要点**：
+     * **国产 AI 桌面端全面适配**：覆盖百度文心 Qoder CN IDE、腾讯云代码助手 CodeBuddy CN IDE 以及腾讯全新独立 Agent 办公工作台 WorkBuddy 桌面端；
+     * **打破认知盲区**：证伪“仅 Monaco 虚拟代码编辑器推导缺陷”的传统假说，揭秘 WorkBuddy 纯 Web 办公工作台同样复现退格卡顿与光标暴跳行首的物理真相；
+     * **锁定 Chromium 138 C++ 状态机漏洞**：还原 `wayland_input_method_context.cc` 处理空预编辑（`preedit_string("")`）时状态机过早复位、导致物理硬件 Backspace 穿透泄露至前端 DOM 的因果因果链；
+     * **对抗性审查 Native ABI 阻断点**：揭秘腾讯 `@tencent/qimei-node` 闭源鉴权二进制死锁在 Node ABI 136，导致无法直接嫁接 Arch 原生 Electron 42 宿主的物理阻断；
+     * **`--wayland-text-input-version=1` 靶向防御**：从协议边界绕过 text-input-v3 内核状态机缺陷，实现 100% 原生行内预编辑（Inline Preedit）且退格光标坚如磐石；
+     * **全量配置模板与 Hyprland 规则**：提供 flags 参数注入、高优先级包装器与完全不透明窗口规则。
+
 ---
 
 ## 规划主题与收录方向

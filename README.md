@@ -33,6 +33,7 @@ omarchy-cn/
 │   │   ├── Omarchy高频快捷键与F1截图标注全攻略（Hyprland按键拓扑、Tensaku现代标注集成与一键配置脚本）.md
 │   │   ├── Omarchy离线语音输入识别配置指南（Voxtype与Whisper普通话模型、RTX显卡GPU加速及剪贴板直通）.md
 │   │   ├── Fcitx5在Wayland下退格跳行首、回车空格误删与候选框漂移排查调优指南（Preedit预编辑机制、WaylandV2虚拟键盘常驻、字号与高亮黑底定制）.md
+│   │   ├── Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md
 │   │   ├── Winmaxle无线蓝牙双模键盘在Omarchy下的HID驱动剖析、陀螺仪飞鼠激活与Hyprland定制按键映射实战指南（XKB层KP_Add映射Super_R、专用快捷键绑定与零冲突调优）.md
 │   │   └── README.md
 │   ├── 02-中文字体与本地化/                         # 系统 Locale、思源字体优先级、Fontconfig 避坑
@@ -48,6 +49,7 @@ omarchy-cn/
 │   │   ├── Windows虚拟机剪贴板乱码根治与F1截图标注光标穿透修复指南（FreeRDP字符集协商、CF_DIB图像桥接与Tensaku选区加固实录）.md
 │   │   ├── Windows容器虚拟机全链路优化指南（宿主机网络隔离与Clash防互扰、Windows11极致性能精简与PowerShell一键脚本）.md
 │   │   ├── Windows虚拟机假死崩溃排查与FreeRDP剪贴板段错误修复（sdl-freerdp3黑边避坑与xfreerdp3源码级修补终极实录）.md
+│   │   ├── Windows容器虚拟机性能与宿主机内存全栈治理实录（16GB宿主机防OOM与分级Swap架构、Btrfs碎片整理、6vCPU扩容与秒级唤醒工作流）.md
 │   │   └── README.md
 │   ├── 06-远程连接与运维工具/                        # SSH 选型、平铺天花板组合、WindTerm避坑、Remmina RDP
 │   │   ├── Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md
@@ -76,13 +78,14 @@ omarchy-cn/
 │   │   └── scripts/
 │   │       ├── check_voxtype.sh
 │   │       └── setup_voxtype.sh
-│   ├── omarchy-windows-vm-tuning/                 # Windows 虚拟机网络隔离与性能精简技能
+│   ├── omarchy-windows-vm-tuning/                 # Windows 虚拟机网络隔离、性能精简与宿主机内存治理技能
 │   │   ├── SKILL.md
 │   │   └── scripts/
 │   │       ├── check_vm_network.sh
 │   │       ├── enable_docker_bypass_clash.sh
 │   │       ├── fix_vm_freerdp_crash.sh
 │   │       ├── rebuild_freerdp_with_patch.sh
+│   │       ├── tune_host_memory_and_vm.sh
 │   │       ├── optimize_windows_vm.ps1
 │   │       └── snapshot_vm_btrfs.sh
 │   ├── omarchy-ssh-management/                    # SSH 运维管理与终端避坑技能
@@ -98,11 +101,16 @@ omarchy-cn/
 │   │       ├── check_gateway_env.sh
 │   │       ├── test_agents.sh
 │   │       └── manage_gateway.sh
-│   └── omarchy-enterprise-vpn-governance/         # 企业级 VPN 自启治理与智能生命周期管理技能
+│   ├── omarchy-enterprise-vpn-governance/         # 企业级 VPN 自启治理与智能生命周期管理技能
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── check_vpn_governance.sh
+│   │       └── apply_vpn_governance.sh
+│   └── omarchy-electron-wayland-ime/              # Electron 类 AI 客户端 Wayland IME 与退格跳行首根治技能
 │       ├── SKILL.md
 │       └── scripts/
-│           ├── check_vpn_governance.sh
-│           └── apply_vpn_governance.sh
+│           ├── diagnose_electron_ime.sh
+│           └── fix_electron_ime.sh
 └── templates/                                     # 开箱即用的配置文件片段
     ├── sangfor/                                   # 深信服 VPN 治理与智能包装器模板
     │   ├── sangfor-mgr                            # 统一服务启停、加锁解锁与进程深度清理脚本（含Trace ID）
@@ -118,6 +126,8 @@ omarchy-cn/
     ├── fcitx5-config                              # 全局配置模板（含 ActiveByDefault 与 TriggerKeys）
     ├── rime.conf                                  # Rime 独立会话隔离配置模板（解除全局会话共享）
     ├── punctuation.yaml                           # Windows 体验标点直出模板（零候选弹窗）
+    ├── electron-flags.conf                        # 通用 Electron Wayland IME 调优与 v1 协议防御模板
+    ├── electron-wrapper.sh                        # 通用 Electron 用户级高优先级包装脚本模板
     ├── bashrc_ime_snippet.sh                      # 终端默认英文与 sudo 包装 Hook 片段
     ├── hypr_input_snippet.lua                     # 物理键盘驱动参数配置片段
     ├── tensaku-capture.sh                         # Tensaku F1 智能截图标注包装脚本
@@ -189,6 +199,12 @@ omarchy-cn/
   * **Wayland 惰性光标上报机理解密**：剖析大部分应用切换输入框后首字在屏幕左侧偏中、打出第一字后才瞬移吸附到光标的根本原因与应对策略；
   * **悬浮弹窗极速唤醒**：破解 Wayland 子表面 Inactive 状态下 Shift 切换失效问题，`Ctrl + Space` 就地一键激活拼音；
   * **经典 UI 字体与黑底高亮定制**：配置 12pt 精致清晰字号，打造首选候选词纯黑背景（`#000000`）配纯白高对比度文字定制主题，激活 `Ctrl + Alt + P` 动态热键。
+* [**Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）**](./docs/01-输入法与按键/Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md)
+  * **证伪“仅 Monaco 虚拟编辑器缺陷”假象**：在腾讯全新架构的 WorkBuddy 独立 Agent 桌面端实测，证实退格卡顿与光标暴跳行首为全 Electron 生态普遍性问题；
+  * **锁定 Chromium 138 C++ 状态机底层漏洞**：还原 `wayland_input_method_context.cc` 处理空预编辑（`preedit_string("")`）时过早复位状态机、导致硬件物理 Backspace 泄漏至前端 DOM 的全链路因果；
+  * **对抗性审查揭秘 Native ABI 阻断点**：深度剖析直接嫁接 Arch 原生 Electron 42 宿主为何遭遇 `@tencent/qimei-node` 闭源二进制与 Node ABI 136 致命崩溃；
+  * **`--wayland-text-input-version=1` 协议级靶向免疫**：从协议边界绕过 text-input-v3 内核状态机缺陷，实现 100% 原生行内预编辑（Inline Preedit）且退格光标坚如磐石；
+  * **生产级 AI 客户端调优全景**：覆盖 Qoder、CodeBuddy、WorkBuddy 的 Flags 注入、argv.json 运行时同步、高优先级用户包装器与 Hyprland 完全不透明规则。
 
 ### 2. 桌面环境与终端显示 (`docs/04-桌面环境与终端显示`)
 * [**Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）**](./docs/04-桌面环境与终端显示/Quickshell桌面菜单假死排查与自愈体系（LayerShell独占焦点死锁根因、restart规范化命令与双屏插件防孤儿架构优化）.md)
@@ -242,6 +258,13 @@ omarchy-cn/
   * **避坑大陷阱**：实测揭示盲目切换至 `sdl-freerdp3` 会在 Hyprland 1.25x 等分数缩放下产生严重的黑边（Letterboxing）与分辨率失真，阐明官方坚守 `xfreerdp3` 的底层缘由；
   * **终极完美方案**：保留 `xfreerdp3` 100% 满屏无黑边渲染，注入官方单行补丁重编 `freerdp`，兼得极致显示与坚如磐石的剪贴板稳定性；
   * **开源协同**：向 Omarchy 官方提交 Issue [#11789](https://github.com/omacom/omarchy/issues/11789) 及追加实测反馈。
+* [**Windows容器虚拟机性能与宿主机内存全栈治理实录（16GB宿主机防OOM与分级Swap架构、Btrfs碎片整理、6vCPU扩容与秒级唤醒工作流）**](./docs/05-Windows容器虚拟机/Windows容器虚拟机性能与宿主机内存全栈治理实录（16GB宿主机防OOM与分级Swap架构、Btrfs碎片整理、6vCPU扩容与秒级唤醒工作流）.md)
+  * **IDE 窗口崩溃（代码 9）破除误区**：实测排除内核 OOM-Killer（`oom_kill=0`），精准定位系无上限 zram 膨胀（8.8GB 吞噬 ~2GB 物理 RAM）导致物理可用内存紧逼不足 500MB，从而触发 Chromium 渲染器看门狗主动 SIGKILL；
+  * **两级 Swap 脱水防卡顿架构**：落地 4GB 封顶 zram（`priority=100`）+ NVMe swapfile（`priority=10`）分级承接；持久化 THP 为 `madvise`、启用 KSM 内存同页去重并为桌面会话注入 `MemoryLow=1G` 软保护；
+  * **虚拟磁盘物理碎片治理**：针对 Btrfs CoW 导致的严重碎片化，通过在线碎片整理使 extents 暴降 92%（86.8万 $\to$ 6.9万），注入 QEMU `writeback` 缓存与 VirtIO Ballooning 动态气球设备；
+  * **开机 20 秒延迟第一性原理拆解**：解构 UEFI (4s) + Windows 11 内核冷启动 (15.4s) + RDP 认证 (1-2s) 的物理耗时下限；
+  * **6 vCPU 算力扩容与秒级唤醒**：分配 6 个虚拟核心充分释放 i5-1135G7 超线程性能（启动并发率达 364%）；确立以“系统休眠/挂起 (Suspend to RAM)”替代冷关机的极速工作流，实现开盖 0 秒秒开与时钟平滑防漂移；
+  * **快捷冷重启工具**：提供 `restart-windows` 自动化命令，实现假死会话优雅关闭、超时强杀、冷重启与 3389 端口智能轮询。
 
 ### 5. 远程连接与运维工具 (`docs/06-远程连接与运维工具`)
 * [**Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）**](./docs/06-远程连接与运维工具/Omarchy下SSH高效运维方案选型（平铺天花板TUI组合与WindTerm避坑深度指南）.md)
@@ -330,6 +353,9 @@ bash skills/omarchy-windows-vm-tuning/scripts/snapshot_vm_btrfs.sh restore
 
 # 一键为 FreeRDP 打入官方剪贴板单行补丁重编安装（彻底消除黑边与段错误闪退）
 bash skills/omarchy-windows-vm-tuning/scripts/rebuild_freerdp_with_patch.sh
+
+# 一键落地宿主机分级 Swap、THP 脱水、Btrfs 碎片整理与虚拟机 6vCPU / writeback 调优
+bash skills/omarchy-windows-vm-tuning/scripts/tune_host_memory_and_vm.sh
 ```
 
 ### 3. SSH 运维环境与终端乱码诊断
@@ -388,7 +414,7 @@ bash skills/omarchy-local-llm-gateway/scripts/manage_gateway.sh status
 1. **`omarchy-chinese-environment`**：负责输入法按键切换、终端默认英文、密码框纯英文直通与本地化排错；
 2. **`omarchy-desktop-tweaks`**：负责桌面快捷键拓扑管理、F1 Tensaku 现代截图标注集成以及 Quickshell 顶部栏居中实时网速挂件开发与部署；
 3. **`omarchy-voice-dictation`**：负责 100% 本地离线语音识别转文字（Whisper 普通话模型）、RTX 显卡 Vulkan 亚秒级硬件加速、解决蓝牙耳机静音幻觉与 Wayland 虚拟键盘防吞字；
-4. **`omarchy-windows-vm-tuning`**：负责 Windows 容器虚拟机网络隔离（Clash 防互扰、VPN 报错排查）、Windows 11 深度精简与 Btrfs 快照管理；
+4. **`omarchy-windows-vm-tuning`**：负责 Windows 容器虚拟机网络隔离（Clash 防互扰、VPN 报错排查）、宿主机分级 Swap 与防 OOM 看门狗强杀治理、Btrfs 碎片消除、6vCPU 扩容、Windows 11 深度精简与 Btrfs 快照管理；
 5. **`omarchy-ssh-management`**：负责 SSH 天花板组合部署、快捷键冲突排查与 WindTerm systemd OSC 3008 乱码修复；
 6. **`omarchy-local-llm-gateway`**：负责本地多 Agent 统一 LLM 网关（LiteLLM）与全链路可观测性大屏（Langfuse v2）的生命周期管理、双算力节点故障切换、Claude Code Extended Thinking 500 崩溃修复与端到端连通性测试。
 
