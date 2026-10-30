@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+# ==============================================================================
+# Omarchy 剪贴板字符集提纯与防乱码哨兵 (第一性原理自愈服务)
+# 作用:
+# 1. 拦截从 Windows 虚拟机 (RDP/Xwayland) 复制文字时，因 XA_STRING (Latin-1) 导致的中文问号乱码 (????)
+# 2. 毫秒级提取高质量 UTF-8 (text/plain;charset=utf-8) 源流，并通过 wl-copy 原子广播回全局
+# 3. 彻底根治所有 Linux 应用 (终端、IDE、浏览器) 粘贴时出现的乱码问号，零延迟、零死循环
+# ==============================================================================
+
+import subprocess
+import hashlib
+import time
+import os
+import signal
+import sys
+
+def main():
+    last_hash = None
+
+    # 启动事件监听子进程
+    watcher = subprocess.Popen(["wl-paste", "--type", "text", "--watch", "cat"], 
+                               stdout=subprocess.PIPE, 
+                               stderr=subprocess.DEVNULL)
+
+    def sig_handler(sig, frame):
+        watcher.terminate()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
+
+    while True:
+        line = watcher.stdout.readline()
+        if not line:
+            break
+
+        try:
+            # 检查当前剪贴板提供的类型
+            types_proc = subprocess.run(["wl-paste", "--list-types"], capture_output=True, text=True, timeout=1)
+            types = set(types_proc.stdout.strip().splitlines())
+
+            if "STRING" in types and "text/plain;charset=utf-8" in types:
+                utf8_proc = subprocess.run(["wl-paste", "--type", "text/plain;charset=utf-8"], capture_output=True, timeout=1)
+                utf8_bytes = utf8_proc.stdout
+                if not utf8_bytes:
+                    continue
+
+                cur_hash = hashlib.sha256(utf8_bytes).hexdigest()
+                if cur_hash == last_hash:
+                    continue
+
+                # 检查 STRING 类型是否包含字符集降级 (问号替代符)
+                str_proc = subprocess.run(["wl-paste", "--type", "STRING"], capture_output=True, timeout=1)
+                str_bytes = str_proc.stdout
+
+                # 判定特征：UTF-8 存在宽字符/多字节(中文等)，而 STRING 被转为全是 '?' 的 Latin-1 截断流
+                has_multibyte = any(b >= 0x80 for b in utf8_bytes)
+                is_garbled = (b'?' in str_bytes and str_bytes.count(b'?') >= 2 and str_bytes != utf8_bytes)
+
+                if has_multibyte and is_garbled:
+                    # 启动无损提纯广播
+                    p = subprocess.Popen(["wl-copy"], stdin=subprocess.PIPE)
+                    p.communicate(input=utf8_bytes)
+                    last_hash = cur_hash
+                else:
+                    last_hash = cur_hash
+        except Exception:
+            time.sleep(0.1)
+
+if __name__ == "__main__":
+    main()

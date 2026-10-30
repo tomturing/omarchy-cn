@@ -65,7 +65,7 @@ bash <skill_dir>/scripts/setup_shortcuts_and_f1.sh
    ```
 
 2. **Tensaku Capture Wrapper (`~/.local/bin/tensaku-capture`)**:
-   Enables interactive capture, auto-saving to picture directory, copying to clipboard via `wl-copy`, and auto-closing the window immediately on copy/save (`--early-exit`):
+   Enables interactive capture, anti-cursor leakage, window focus auto-restoration, and IME state recovery:
    ```bash
    #!/bin/bash
    user_dirs="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
@@ -73,13 +73,31 @@ bash <skill_dir>/scripts/setup_shortcuts_and_f1.sh
    dir="${OMARCHY_SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}}"
    mkdir -p "$dir"
 
-   exec tensaku --capture \
+   # Record active window address prior to launching overlay
+   prev_window=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // empty')
+
+   # Reset compositor cursor to prevent Xwayland I-beam cursor leakage
+   cursor_theme=$(gsettings get org.gnome.desktop.interface cursor-theme 2>/dev/null | tr -d "'")
+   cursor_size=$(gsettings get org.gnome.desktop.interface cursor-size 2>/dev/null || echo 24)
+   if [[ -n "$cursor_theme" ]]; then
+     hyprctl setcursor "$cursor_theme" "$cursor_size" 2>/dev/null || true
+   fi
+
+   # Launch Tensaku without exec to allow post-exit cleanup
+   tensaku --capture \
      --output-filename "$dir/tensaku-$(date +%Y-%m-%d_%H-%M-%S).png" \
      --actions-on-enter save-to-clipboard \
      --save-after-copy \
-     --copy-command wl-copy \
+     --initial-tool rectangle \
+     --copy-command "wl-copy --type image/png" \
      --early-exit \
      "$@"
+
+   # Post-exit auto-healing: Restore window focus (supports Hyprland 0.56+ Lua & legacy)
+   if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
+     hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
+       || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
+   fi
    ```
 
 3. **Tensaku Global Configuration (`~/.config/tensaku/config.toml`)**:

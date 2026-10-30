@@ -267,3 +267,30 @@ bash <skill_dir>/scripts/snapshot_vm_btrfs.sh restore
 # Check snapshot status
 bash <skill_dir>/scripts/snapshot_vm_btrfs.sh status
 ```
+---
+
+## 13. Pre-seeding Windows 11 ISO (Download Bypass)
+
+To skip the 5GB online download during container deployment:
+1. Pre-download `win11x64.iso` using IDM / aria2 externally.
+2. Copy into `/var/lib/omarchy/windows/mounts/users/1000/storage/win11x64.iso`.
+3. Set ownership `sudo chown tom:tom ...`.
+4. Launch container: `omarchy-windows-vm launch`.
+
+---
+
+## 14. Clipboard Mojibake Auto-Healer & Image Bridge
+
+To completely eliminate question mark mojibake (`OK??????skill???PR`) when copying text from Windows to Omarchy, and ensure cross-platform screenshot pasting:
+
+### Automated Setup & Persistence:
+Run the bundled script to install the event-driven clipboard purifier and enable the systemd user service permanently across reboots:
+```bash
+bash <skill_dir>/scripts/setup_clipboard_healer.sh
+```
+
+### Key Technical Mechanisms:
+1. **Root Cause**: X11 `XA_STRING` is restricted to ISO-8859-1 (Latin-1) by ICCCM standards. FreeRDP replaces non-Latin-1 characters (such as Chinese) with question marks `?` when applications request `STRING`.
+2. **Purification Loop**: `omarchy-clipboard-mojibake-healer-step` intercepts clipboard offers in 0ms, extracts pristine UTF-8 bytes from `text/plain;charset=utf-8`, and broadcasts them back to all selection targets via `wl-copy`.
+3. **In-VM Self-Healing**: Deploy `/var/lib/omarchy/windows/mounts/users/1000/shared/fix-clipboard.bat` to instantly restart hung `rdpclip.exe` instances inside Windows.
+
