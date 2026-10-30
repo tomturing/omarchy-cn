@@ -1,12 +1,12 @@
 #!/bin/bash
 # ==============================================================================
-# Tensaku 现代批注截图包装器 (强化加固版 - 第一性原理防光标穿透与焦点自愈设计)
+# Tensaku 现代批注截图包装器 (强化加固版 - 第一性原理防光标穿透与输入法无损透明)
 # 1. 启动前强制唤醒合成器光标，消除 Xwayland (xfreerdp3) 文本输入工字型光标 (I-beam) 残留
 # 2. 强制指定 --initial-tool rectangle，杜绝误触发 text 批注导致全屏输入光标
 # 3. 显式绑定 --copy-command "wl-copy --type image/png"，确保剪贴板精准保留图像 MIME 格式
-# 4. 【核心自愈】Tensaku退出后：
-#    - 适配 Hyprland 0.56+ Lua 调度器，精准恢复底层原窗口焦点 (特别是 Xwayland/xfreerdp)
-#    - 强制关闭/重置 Fcitx5 激活态 (fcitx5-remote -c)，杜绝 LayerShell 退出后输入法悬挂拦截击键
+# 4. 【输入法无损透明】严禁主动篡改用户的输入法模式(不调用任何 fcitx5-remote -c/-o)，
+#    保持截图前后输入法状态绝对一致，不将中文模式误切为英文
+# 5. 【焦点自愈】退出后精准恢复底层原窗口焦点 (兼容 Hyprland 0.56+ Lua 调度器)
 # ==============================================================================
 
 user_dirs="${XDG_CONFIG_HOME:-$HOME/.config}/user-dirs.dirs"
@@ -35,14 +35,9 @@ tensaku --capture \
   "$@"
 
 # ==============================================================================
-# 截图完成退出后的焦点与输入法自愈逻辑
+# 截图完成退出后的焦点恢复逻辑 (输入法状态原样保留，严禁擅自修改)
 # ==============================================================================
-# 1. 强制将焦点归还给原窗口 (同时兼容 Hyprland 0.56+ Lua dispatcher 与旧版语法)
 if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
   hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
     || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
 fi
-
-# 2. 强制关闭输入法激活态 (确保处于 Inactive/透传状态 1)
-#    严禁调用 -o 强制激活，防止宿主机 Fcitx5 截获 Windows 虚拟机或 Xwayland 的物理击键
-fcitx5-remote -c >/dev/null 2>&1 || true

@@ -141,17 +141,12 @@ tensaku --capture \
   "$@"
 
 # ==============================================================================
-# 截图完成退出后的焦点与输入法自愈逻辑
+# 截图完成退出后的焦点恢复逻辑 (输入法状态原样保留，严禁擅自修改)
 # ==============================================================================
-# 1. 强制将焦点归还给原窗口 (同时兼容 Hyprland 0.56+ Lua 调度器与旧版语法)
 if [[ -n "$prev_window" && "$prev_window" != "0x" ]]; then
   hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
     || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
 fi
-
-# 2. 强制关闭输入法激活态 (确保处于 Inactive/透传状态 1)
-#    严禁调用 -o 强制激活，防止宿主机 Fcitx5 截获 Windows 虚拟机或 Xwayland 的物理击键导致死锁
-fcitx5-remote -c >/dev/null 2>&1 || true
 ```
 
 ### 4.2 加固 `xfreerdp3` 代理脚本

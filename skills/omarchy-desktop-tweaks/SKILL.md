@@ -98,10 +98,6 @@ bash <skill_dir>/scripts/setup_shortcuts_and_f1.sh
      hyprctl dispatch "hl.dsp.focus({ window = 'address:$prev_window' })" >/dev/null 2>&1 \
        || hyprctl dispatch focuswindow "address:$prev_window" >/dev/null 2>&1 || true
    fi
-
-   # Ensure host IME remains inactive (state 1 / direct pass-through),
-   # preventing Fcitx5 from intercepting VM/Xwayland keystrokes (e.g. WeCom typing deadlock)
-   fcitx5-remote -c >/dev/null 2>&1 || true
    ```
 
 3. **Tensaku Global Configuration (`~/.config/tensaku/config.toml`)**:
