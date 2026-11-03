@@ -17,7 +17,15 @@
      * **大窗口关闭保护**：反编译验证 EasyConnect 登录后关闭大界面不退网、释放平铺工作区的底层代码证据；
      * **全自动无感包装器**：Sudoers 权限穿透、Trace ID 调用链追踪日志，日常点击菜单秒启，退出时自动强杀孤儿进程并安全停用。
 
-2. 👉 [**Wayland 下 Electron 与 AI 客户端中文输入法退格跳行首深度剖析与根治指南（Qoder、CodeBuddy 与全新 WorkBuddy 全适配）**](../01-输入法与按键/Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md)
+2. 👉 [**Qoder IDE CN 频繁崩溃治理与文件监听引擎加固实战指南**](./Qoder-IDE-CN频繁崩溃治理与文件监听引擎加固实战指南.md)
+   * **核心要点**：
+     * **第一性原理与 Coredump 汇编溯源**：反汇编分析崩溃现场 `DirTree::remove` 的 `mov (%r14), %rax` 寄存器状态，定位 `@parcel/watcher` v2.5.1 在并发目录变更时的 C++ 空指针解引用与 UAF 竞态漏洞；
+     * **锁定崩溃触发点**：高频创建与删除 Git Worktree 触发底层 Linux `inotify` 与 `DirTree` 析构竞态，导致 Node.js utilityProcess 崩溃（`SIGSEGV`，退出码 139）并引发 IDE 窗口级联闪退；
+     * **升级验证与 Meyers 全局互斥锁加固**：验证官方 v2.6.0 的 `mDirCacheMutex()` Meyers 单例全局锁机制，经 20 轮高并发创建、监听、写盘与硬删除极限压力测试，零崩溃稳定运行；
+     * **对抗性审查与双重自愈防线**：设计用户空间无损拦截（通过包装器注入 `NODE_OPTIONS` 拦截模块请求，免 root 且免疫 Pacman 覆盖）与系统级 Pacman ALPM Hook 自动修补，构建双层工程化持久防线；
+     * **自包含与开箱即用**：补丁包自包含完整依赖 (`picomatch`, `is-glob`, `is-extglob`) 与预编译二进制，提供 `templates/qoder/` 自动化安装程序。
+
+3. 👉 [**Wayland 下 Electron 与 AI 客户端中文输入法退格跳行首深度剖析与根治指南（Qoder、CodeBuddy 与全新 WorkBuddy 全适配）**](../01-输入法与按键/Wayland下Electron与AI客户端中文输入法退格跳行首深度剖析与根治指南（Chromium138内核缺陷、TextInput-v1协议防御、Qoder与CodeBuddy及WorkBuddy全适配）.md)
    * **核心要点**：
      * **国产 AI 桌面端全面适配**：覆盖百度文心 Qoder CN IDE、腾讯云代码助手 CodeBuddy CN IDE 以及腾讯全新独立 Agent 办公工作台 WorkBuddy 桌面端；
      * **打破认知盲区**：证伪“仅 Monaco 虚拟代码编辑器推导缺陷”的传统假说，揭秘 WorkBuddy 纯 Web 办公工作台同样复现退格卡顿与光标暴跳行首的物理真相；

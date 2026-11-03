@@ -1,0 +1,8 @@
+# 忽略解压后的原生二进制，仅追踪高压缩比的 watcher.node.gz 资产
+assets/build/Release/watcher.node
+!assets/build/Release/watcher.node.gz
+
+# 允许追踪加固资产中的自包含依赖
+!assets/node_modules/
+!assets/node_modules/**
+
