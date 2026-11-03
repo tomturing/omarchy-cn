@@ -1,0 +1,10 @@
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = usr/lib/qoder-cn-ide/*
+
+[Action]
+Description = 自动加固 Qoder IDE CN 文件监听引擎 (升级 parcel-watcher 至 v2.6.0，根治并发段错误)...
+When = PostTransaction
+Exec = /usr/share/qoder-ide/patch-qoder-ide.sh --system

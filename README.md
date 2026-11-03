@@ -37,8 +37,9 @@ omarchy-cn/
 │   │   ├── Winmaxle无线蓝牙双模键盘在Omarchy下的HID驱动剖析、陀螺仪飞鼠激活与Hyprland定制按键映射实战指南（XKB层KP_Add映射Super_R、专用快捷键绑定与零冲突调优）.md
 │   │   └── README.md
 │   ├── 02-中文字体与本地化/                         # 系统 Locale、思源字体优先级、Fontconfig 避坑
-│   ├── 03-国产办公软件适配/                         # 企业微信 (WeCom)、微信、深信服 aTrust / EasyConnect VPN 治理
+│   ├── 03-国产办公软件适配/                         # 企业微信 (WeCom)、微信、深信服 aTrust / EasyConnect VPN 治理、Qoder IDE 崩溃加固
 │   │   ├── 深信服aTrust与EasyConnect自启治理、全生命周期管理与Wayland悬浮托盘交互实战指南.md
+│   │   ├── Qoder-IDE-CN频繁崩溃治理与文件监听引擎加固实战指南.md
 │   │   └── README.md
 │   ├── 04-桌面环境与终端显示/                       # Hyprland 规则、Quickshell 顶栏实时网速、终端中文字符对齐
 │   │   ├── Omarchy顶部栏居中实时网速显示配置指南（Quickshell组件开发、流量无损采集与一键部署脚本）.md
@@ -118,6 +119,11 @@ omarchy-cn/
     │   ├── ec-stop                                # 一键强制断开与锁死工具
     │   ├── sangfor_sudoers                        # Sudoers 免密提权配置模板
     │   └── install.sh                             # 一键自动化部署脚本
+    ├── qoder/                                     # Qoder IDE CN 文件监听引擎崩溃治理与自愈模板
+    │   ├── patch-qoder-ide.sh                     # 双模式（用户级/系统级）热修补与加固脚本（含Trace ID）
+    │   ├── qoder-ide-watcher.hook                 # Pacman ALPM 自动挂载自愈钩子（防升级冲掉）
+    │   ├── install.sh                             # 一键全自动加固安装程序
+    │   └── assets/                                # 自包含加固资产（watcher.node v2.6.0、JS包装器与picomatch依赖）
     ├── default.custom.yaml                        # Rime 全局方案补丁模板
     ├── rime_ice.custom.yaml                       # 雾凇拼音专属方案补丁模板
     ├── fcitx5.yaml                                # 桌面组件与密码应用级策略模板
